@@ -13,38 +13,42 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
     body, html { height: 100%; width: 100%; overflow: hidden; background: #f3f4f6; }
 
-    /* Top Control Bar */
+    /* Compact Top Control Bar */
     .top-bar {
-      position: absolute; top: 10px; left: 10px; right: 10px; z-index: 1000;
-      background: #ffffff; padding: 10px 12px; border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.12); display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      position: absolute; top: 8px; left: 8px; right: 8px; z-index: 1000;
+      background: #ffffff; padding: 6px 8px; border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.12); display: flex; gap: 6px; align-items: center;
     }
     .top-bar select {
-      flex: 1; min-width: 140px; padding: 10px; border: 1px solid #d1d5db;
-      border-radius: 8px; font-size: 14px; font-weight: 600; background: #f9fafb;
+      flex: 1; min-width: 110px; padding: 8px; border: 1px solid #d1d5db;
+      border-radius: 7px; font-size: 13px; font-weight: 600; background: #f9fafb;
     }
     .btn {
-      padding: 10px 12px; border: none; border-radius: 8px; font-size: 13px;
-      font-weight: 600; cursor: pointer; transition: 0.15s;
+      padding: 8px 10px; border: none; border-radius: 7px; font-size: 12px;
+      font-weight: 600; cursor: pointer; transition: 0.15s; white-space: nowrap;
+      display: inline-flex; align-items: center; justify-content: center;
     }
     .btn-primary { background: #1a73e8; color: #fff; }
     .btn-success { background: #16a34a; color: #fff; }
     .btn-outline { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
 
-    /* Google Maps Style Turn-by-Turn Voice Banner */
+    /* Compact Turn-by-Turn Voice Banner */
     .nav-banner {
-      position: absolute; top: 68px; left: 10px; right: 10px; z-index: 1000;
-      background: #0f5338; color: #ffffff; padding: 12px 14px; border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: none; align-items: center; justify-content: space-between; gap: 10px;
+      position: absolute; top: 54px; left: 8px; right: 8px; z-index: 1000;
+      background: #0f5338; color: #ffffff; padding: 8px 10px; border-radius: 10px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.2); display: none; align-items: center; justify-content: space-between; gap: 8px;
     }
-    .nav-step-main { display: flex; align-items: center; gap: 12px; flex: 1; }
-    .nav-icon { font-size: 26px; background: rgba(255,255,255,0.15); width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-    .nav-text-wrap { flex: 1; }
-    .nav-instruction { font-size: 15px; font-weight: 700; line-height: 1.25; }
-    .nav-sub { font-size: 12px; color: #a7f3d0; margin-top: 3px; font-weight: 600; }
+    .nav-step-main { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+    .nav-icon {
+      font-size: 20px; background: rgba(255,255,255,0.15); width: 34px; height: 34px;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .nav-text-wrap { flex: 1; min-width: 0; }
+    .nav-instruction { font-size: 13px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nav-sub { font-size: 11px; color: #a7f3d0; margin-top: 2px; font-weight: 600; }
     .voice-btn {
-      background: rgba(255,255,255,0.2); color: #fff; border: none; padding: 8px 10px;
-      border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+      background: rgba(255,255,255,0.2); color: #fff; border: none; padding: 6px 8px;
+      border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0;
     }
 
     /* Map Container */
@@ -56,60 +60,87 @@
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
     }
 
-    /* Bottom Active Stop & Queue Panel */
+    /* Compact Bottom Footer Panel */
     .bottom-panel {
       position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000;
-      background: #ffffff; border-radius: 18px 18px 0 0;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.15); padding: 14px 16px;
-      max-height: 44vh; display: flex; flex-direction: column; gap: 10px;
+      background: #ffffff; border-radius: 14px 14px 0 0;
+      box-shadow: 0 -3px 16px rgba(0,0,0,0.15); padding: 10px 12px;
+      display: flex; flex-direction: column;
     }
     .active-card {
-      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px;
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 8px 10px;
     }
-    .active-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .active-header {
+      display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    }
+    .title-wrap {
+      display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;
+    }
     .badge {
-      background: #1a73e8; color: #fff; font-size: 11px; font-weight: 700;
-      padding: 3px 8px; border-radius: 99px; text-transform: uppercase;
+      background: #1a73e8; color: #fff; font-size: 10px; font-weight: 700;
+      padding: 2px 6px; border-radius: 99px; text-transform: uppercase; flex-shrink: 0;
     }
-    .shop-title { font-size: 16px; font-weight: 700; color: #111827; }
-    .action-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-    .action-row .btn, .action-row a { flex: 1; text-align: center; text-decoration: none; }
+    .shop-title {
+      font-size: 14px; font-weight: 700; color: #111827;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .distance-label {
+      font-size: 12px; font-weight: 700; color: #1e40af; flex-shrink: 0;
+    }
 
-    /* Shop Sequence List */
-    .shop-list { overflow-y: auto; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+    /* Footer Action Row */
+    .action-row {
+      display: flex; gap: 6px; margin-top: 8px; align-items: center;
+    }
+    .btn-next { flex: 1.4; }
+    .btn-call { flex: 1; text-decoration: none; }
+    .btn-icon { width: 36px; height: 34px; padding: 0; font-size: 14px; flex-shrink: 0; }
+
+    /* Collapsible Shop Sequence List (Hidden by Default) */
+    .shop-list {
+      display: none;
+      max-height: 32vh;
+      overflow-y: auto;
+      border-top: 1px solid #e5e7eb;
+      margin-top: 8px;
+      padding-top: 6px;
+    }
+    .shop-list.open {
+      display: block;
+    }
     .shop-item {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 6px; border-bottom: 1px solid #f3f4f6; font-size: 13px; cursor: pointer;
+      padding: 7px 4px; border-bottom: 1px solid #f3f4f6; font-size: 13px; cursor: pointer;
     }
     .shop-item.visited { opacity: 0.5; text-decoration: line-through; }
     .shop-num {
-      display: inline-block; width: 22px; height: 22px; border-radius: 50%;
-      background: #e5e7eb; color: #111827; text-align: center; line-height: 22px;
-      font-weight: 700; font-size: 11px; margin-right: 8px;
+      display: inline-block; width: 20px; height: 20px; border-radius: 50%;
+      background: #e5e7eb; color: #111827; text-align: center; line-height: 20px;
+      font-weight: 700; font-size: 11px; margin-right: 6px;
     }
 
-    /* Hide default white routing box so our green Voice Banner leads */
+    /* Hide default white routing box */
     .leaflet-routing-container { display: none !important; }
   </style>
 </head>
 <body>
 
-  <!-- Top Controls -->
+  <!-- Compact Top Controls -->
   <div class="top-bar">
     <select id="areaSelect">
       <option value="">Loading areas...</option>
     </select>
-    <button class="btn btn-primary" onclick="startLiveTwoWheelerNavigation()">🛵 Start 2-Wheeler Route</button>
-    <button class="btn btn-outline" id="muteBtn" onclick="toggleVoice()">🔊 Voice ON</button>
+    <button class="btn btn-primary" onclick="startLiveTwoWheelerNavigation()">🛵 Start</button>
+    <button class="btn btn-outline" id="muteBtn" onclick="toggleVoice()">🔊</button>
   </div>
 
-  <!-- Live Turn-by-Turn Navigation Banner (Like Google Maps) -->
+  <!-- Live Turn-by-Turn Navigation Banner -->
   <div class="nav-banner" id="navBanner">
     <div class="nav-step-main">
       <div class="nav-icon" id="navTurnIcon">⬆️</div>
       <div class="nav-text-wrap">
-        <div class="nav-instruction" id="navInstructionText">Calculating two-wheeler route...</div>
-        <div class="nav-sub" id="navSubText">Waiting for GPS movement...</div>
+        <div class="nav-instruction" id="navInstructionText">Calculating route...</div>
+        <div class="nav-sub" id="navSubText">Waiting for GPS...</div>
       </div>
     </div>
     <button class="voice-btn" onclick="speakCurrentStep()">🗣️ Repeat</button>
@@ -118,21 +149,27 @@
   <!-- Map -->
   <div id="map"></div>
 
-  <!-- Bottom Active Shop & Route Queue -->
+  <!-- Compact Bottom Footer -->
   <div class="bottom-panel">
+    <!-- Hidden Shop List Drawer (Opens above the target shop card or inside footer) -->
     <div id="activeStopContainer" class="active-card">
       <div class="active-header">
-        <span class="badge" id="stopBadge">Loading</span>
-        <span id="distanceText" style="font-size: 12px; font-weight: 600; color: #1e40af;"></span>
+        <div class="title-wrap">
+          <span class="badge" id="stopBadge">Loading</span>
+          <span class="shop-title" id="activeShopName">Connecting to sheet...</span>
+        </div>
+        <span id="distanceText" class="distance-label"></span>
       </div>
-      <div class="shop-title" id="activeShopName">Connecting to Google Sheet...</div>
+
       <div class="action-row" id="activeActions" style="display: none;">
-        <button class="btn btn-success" onclick="markCurrentVisited()">✅ Reached / Next Shop</button>
-        <button class="btn btn-outline" onclick="recenterOnRider()">🎯 Center Me</button>
-        <a id="callBtn" class="btn btn-outline" href="#" style="display:none;">📞 Call</a>
+        <button class="btn btn-success btn-next" onclick="markCurrentVisited()">✅ Next Shop</button>
+        <button class="btn btn-outline btn-icon" onclick="recenterOnRider()" title="Center on me">🎯</button>
+        <a id="callBtn" class="btn btn-outline btn-call" href="#">📞 Call</a>
+        <button class="btn btn-outline btn-icon" id="toggleListBtn" onclick="toggleShopList()" title="Show/Hide Shop List">▲</button>
       </div>
     </div>
 
+    <!-- Collapsible Shop List -->
     <div class="shop-list" id="shopList"></div>
   </div>
 
@@ -163,7 +200,7 @@
     let lastSpokenStepIdx = -1;
     let lastRedrawLocation = null;
 
-    // Initialize Map with OpenStreetMap Tiles
+    // Initialize Map
     try {
       map = L.map('map', { zoomControl: false }).setView([18.5135, 73.8553], 15);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -172,7 +209,7 @@
       }).addTo(map);
       markersLayer = L.layerGroup().addTo(map);
 
-      // Allow tapping the map to manually set start location if testing on PC without GPS
+      // Tap map to test on PC without GPS
       map.on('click', function(e) {
         if (areaShops.length > 0 && !gpsWatchId) {
           userLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
@@ -185,7 +222,22 @@
       document.getElementById("activeShopName").innerText = "Map error: " + err.message;
     }
 
-    // Text-to-Speech Function for Voice Directions
+    // Toggle Shop List Drawer (Up/Down Arrow Button beside Call Button)
+    function toggleShopList(forceState) {
+      const listEl = document.getElementById("shopList");
+      const btnEl = document.getElementById("toggleListBtn");
+      const isOpen = typeof forceState === "boolean" ? forceState : !listEl.classList.contains("open");
+
+      if (isOpen) {
+        listEl.classList.add("open");
+        btnEl.innerText = "▼";
+      } else {
+        listEl.classList.remove("open");
+        btnEl.innerText = "▲";
+      }
+    }
+
+    // Text-to-Speech Function
     function speakText(text) {
       if (!voiceEnabled || !('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
@@ -198,7 +250,7 @@
     function toggleVoice() {
       voiceEnabled = !voiceEnabled;
       const btn = document.getElementById("muteBtn");
-      btn.innerText = voiceEnabled ? "🔊 Voice ON" : "🔇 Muted";
+      btn.innerText = voiceEnabled ? "🔊" : "🔇";
       if (!voiceEnabled && ('speechSynthesis' in window)) {
         window.speechSynthesis.cancel();
       } else {
@@ -211,7 +263,6 @@
       if (text) speakText(text);
     }
 
-    // Distance in meters between two coordinates
     function getDistanceMeters(lat1, lon1, lat2, lon2) {
       const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -242,7 +293,7 @@
 
       populateAreaDropdown();
       document.getElementById("stopBadge").innerText = "Ready";
-      document.getElementById("activeShopName").innerText = `Loaded ${allCustomers.length} shops. Select an area above.`;
+      document.getElementById("activeShopName").innerText = `Select an area above (${allCustomers.length} shops)`;
     }
 
     async function loadSheetData() {
@@ -280,6 +331,7 @@
         routingControl = null;
       }
       document.getElementById("navBanner").style.display = "none";
+      toggleShopList(false);
 
       areaShops = allCustomers.filter(c => c.area === areaName);
       if (areaShops.length === 0) return;
@@ -291,27 +343,26 @@
         bounds.push([shop.lat, shop.lng]);
       });
 
-      map.fitBounds(bounds, { padding: [50, 50] });
+      map.fitBounds(bounds, { padding: [40, 40] });
       renderShopSequence();
       document.getElementById("stopBadge").innerText = areaName;
-      document.getElementById("activeShopName").innerText = `${areaShops.length} shops ready. Tap "🛵 Start 2-Wheeler Route".`;
-      document.getElementById("activeActions").style.display = "none";
+      document.getElementById("activeShopName").innerText = `${areaShops.length} shops ready. Tap "🛵 Start"`;
+      document.getElementById("activeActions").style.display = "flex";
       document.getElementById("distanceText").innerText = "";
     }
 
-    // Start Continuous Live GPS Tracking & Voice Navigation
     function startLiveTwoWheelerNavigation() {
       if (areaShops.length === 0) {
         alert("Please select an Area from the dropdown first.");
         return;
       }
 
-      // Unlock browser speech engine on user button click
-      speakText("Starting two wheeler navigation");
+      toggleShopList(false);
+      speakText("Starting two wheeler route");
 
-      document.getElementById("stopBadge").innerText = "Locating GPS...";
+      document.getElementById("stopBadge").innerText = "GPS...";
       document.getElementById("navBanner").style.display = "flex";
-      document.getElementById("navInstructionText").innerText = "Acquiring your live GPS location...";
+      document.getElementById("navInstructionText").innerText = "Finding live GPS location...";
 
       if (!navigator.geolocation) {
         useFallbackStartLocation();
@@ -345,14 +396,12 @@
       );
     }
 
-    // Fallback if testing on PC or GPS is turned off (Offsets by 350m so it never shows 0.0m)
     function useFallbackStartLocation() {
       const firstShop = areaShops[0];
       userLocation = {
         lat: firstShop.lat + 0.0028,
         lng: firstShop.lng - 0.0022
       };
-      alert("Live GPS is off or blocked on this device. Starting a test route 350m away from the first shop (or tap anywhere on the map to move your scooter).");
       updateUserMarker();
       sortShopsByNearestChain(userLocation.lat, userLocation.lng);
       routeToNextUnvisited(true);
@@ -380,32 +429,28 @@
       }
     }
 
-    // Triggered continuously as the rider moves on their two-wheeler
     function onRiderMoved() {
       if (!currentTargetShop || !userLocation) return;
 
       const distToShop = getDistanceMeters(userLocation.lat, userLocation.lng, currentTargetShop.lat, currentTargetShop.lng);
-      document.getElementById("distanceText").innerText = distToShop < 1000 ? `${Math.round(distToShop)} m away` : `${(distToShop / 1000).toFixed(2)} km away`;
+      document.getElementById("distanceText").innerText = distToShop < 1000 ? `${Math.round(distToShop)} m` : `${(distToShop / 1000).toFixed(2)} km`;
 
-      // Check if rider has arrived at the shop (within 22 meters)
       if (distToShop <= 22 && lastSpokenStepIdx !== 9999) {
         lastSpokenStepIdx = 9999;
         document.getElementById("navTurnIcon").innerText = "🏁";
         document.getElementById("navInstructionText").innerText = `Arrived at ${currentTargetShop.name}`;
-        document.getElementById("navSubText").innerText = "Tap 'Reached / Next Shop' below to route to next customer.";
+        document.getElementById("navSubText").innerText = "Tap '✅ Next Shop' below";
         speakText(`You have arrived at ${currentTargetShop.name}`);
         return;
       }
 
-      // Check distance to upcoming turn instruction
       if (routeInstructions.length > 0 && currentStepIdx < routeInstructions.length) {
         const step = routeInstructions[currentStepIdx];
         const coord = routeCoordinates[step.index];
         if (coord) {
           const distToTurn = getDistanceMeters(userLocation.lat, userLocation.lng, coord.lat, coord.lng);
-          document.getElementById("navSubText").innerText = `Next turn in ${Math.round(distToTurn)} m`;
+          document.getElementById("navSubText").innerText = `Turn in ${Math.round(distToTurn)} m`;
 
-          // When within 35 meters of the turn, announce it and advance to next instruction
           if (distToTurn <= 35 && lastSpokenStepIdx !== currentStepIdx) {
             lastSpokenStepIdx = currentStepIdx;
             updateNavBannerStep(step);
@@ -417,7 +462,6 @@
         }
       }
 
-      // Re-draw route line if rider moved more than 40 meters
       if (!lastRedrawLocation || getDistanceMeters(userLocation.lat, userLocation.lng, lastRedrawLocation.lat, lastRedrawLocation.lng) > 40) {
         drawRouteToShop(currentTargetShop, false);
       }
@@ -438,7 +482,7 @@
       document.getElementById("navBanner").style.display = "flex";
       document.getElementById("navTurnIcon").innerText = getTurnEmoji(step.type, step.modifier);
       document.getElementById("navInstructionText").innerText = step.text;
-      document.getElementById("navSubText").innerText = step.distance ? `Continue for ${Math.round(step.distance)} m` : "Follow the blue line";
+      document.getElementById("navSubText").innerText = step.distance ? `Continue ${Math.round(step.distance)} m` : "Follow route";
     }
 
     function sortShopsByNearestChain(startLat, startLng) {
@@ -471,10 +515,10 @@
     function routeToNextUnvisited(announceStart) {
       const nextShop = areaShops.find(s => !s.visited);
       if (!nextShop) {
-        document.getElementById("stopBadge").innerText = "Completed";
-        document.getElementById("activeShopName").innerText = "🎉 All shops in this area visited!";
-        document.getElementById("activeActions").style.display = "none";
+        document.getElementById("stopBadge").innerText = "Done";
+        document.getElementById("activeShopName").innerText = "🎉 All shops visited!";
         document.getElementById("navBanner").style.display = "none";
+        document.getElementById("distanceText").innerText = "";
         speakText("All shops in this area have been visited.");
         if (routingControl) map.removeControl(routingControl);
         return;
@@ -485,6 +529,7 @@
     window.routeToSpecificShop = function(shopId) {
       const shop = areaShops.find(s => s.id === shopId);
       if (shop) {
+        toggleShopList(false); // Auto-hide list when a shop is chosen
         if (!userLocation) {
           userLocation = { lat: shop.lat + 0.0025, lng: shop.lng - 0.002 };
           updateUserMarker();
@@ -502,7 +547,6 @@
 
       if (routingControl) map.removeControl(routingControl);
 
-      // Two-Wheeler OSRM Router (routed-bike profile handles narrow market lanes)
       routingControl = L.Routing.control({
         waypoints: [startPt, endPt],
         router: L.Routing.osrmv1({
@@ -532,21 +576,24 @@
           const firstStep = routeInstructions[0];
           updateNavBannerStep(firstStep);
           if (announceStart) {
-            speakText(`Route to ${shop.name}. ${firstStep.text}`);
+            speakText(`Next stop ${shop.name}. ${firstStep.text}`);
           }
         }
       });
 
-      document.getElementById("stopBadge").innerText = "2-Wheeler Active";
+      document.getElementById("stopBadge").innerText = "Target";
       document.getElementById("activeShopName").innerText = shop.name;
       document.getElementById("activeActions").style.display = "flex";
 
       const callBtn = document.getElementById("callBtn");
       if (shop.phone) {
-        callBtn.style.display = "inline-block";
         callBtn.href = `tel:${shop.phone}`;
+        callBtn.style.opacity = "1";
+        callBtn.style.pointerEvents = "auto";
       } else {
-        callBtn.style.display = "none";
+        callBtn.href = "#";
+        callBtn.style.opacity = "0.4";
+        callBtn.style.pointerEvents = "none";
       }
     }
 
@@ -554,7 +601,6 @@
       if (!currentTargetShop) return;
       currentTargetShop.visited = true;
 
-      // Move rider reference to the shop just visited so the next route starts from here
       userLocation = { lat: currentTargetShop.lat, lng: currentTargetShop.lng };
       updateUserMarker();
 
