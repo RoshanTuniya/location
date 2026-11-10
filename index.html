@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Customer Area Route Tracker</title>
 
-  <!-- Leaflet Map & Routing CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <!-- Cloudflare CDN for Leaflet & Routing (Works reliably on all networks) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.css" />
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
@@ -105,33 +105,35 @@
     <div class="shop-list" id="shopList"></div>
   </div>
 
-  <!-- JS Libraries -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+  <!-- Cloudflare JS Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
   <script>
-    // HARDCODED GOOGLE SHEET PUBLISHED CSV URL
+    // HARDCODED GOOGLE SHEET PUBLISHED CSV URL (No extra query params that trigger 400 error)
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSAKuQG7Ap1FQQLm_5yiiFvgA7UFzjqmhRlxyHRFtYfBK7O2H4NkgGFBXoNTdLlvYPUAnHLDerZDucl/pub?output=csv";
 
     let allCustomers = [];
     let areaShops = [];
-    let userLocation = null; // { lat, lng }
+    let userLocation = null;
     let currentTargetShop = null;
     let routingControl = null;
-    let markersLayer = L.layerGroup();
+    let map = null;
+    let markersLayer = null;
     let userMarker = null;
 
-    // Initialize Map (Centered around Pune by default)
-    const map = L.map('map', { zoomControl: false }).setView([18.5196, 73.8553], 13);
-
-    // Clean Google-Maps-like Basemap (CartoDB Voyager)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      maxZoom: 20
-    }).addTo(map);
-
-    markersLayer.addTo(map);
+    // Initialize Map safely
+    try {
+      map = L.map('map', { zoomControl: false }).setView([18.5196, 73.8553], 13);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxZoom: 20
+      }).addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+    } catch (err) {
+      document.getElementById("activeShopName").innerText = "Map library failed to load: " + err.message;
+    }
 
     // Calculate straight-line distance in km (Haversine formula)
     function getDistanceKm(lat1, lon1, lat2, lon2) {
@@ -144,26 +146,268 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // Parse CSV Text into Customer Array
-    function processCsvText(csvText) {
-      const results = Papa.parse(csvText, {
-        header: false,
-        skipEmptyLines: true
-      });
-
-      const rows = results.data;
+    // Parse CSV Rows into Customer Array
+    function processParsedRows(rows) {
       allCustomers = [];
 
       // Start from row index 1 (skipping header row 0)
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
+        if (!row || row.length < 4) continue;
+
         const area = String(row[0] || "").trim();
         const name = String(row[1] || "").trim();
-        const lat = parseFloat(String(row[2] || "").trim());
-        const lng = parseFloat(String(row[3] || "").trim());
+        // Clean any hidden spaces or commas in coordinates
+        const lat = parseFloat(String(row[2] || "").replace(/[^\d.-]/g, ""));
+        const lng = parseFloat(String(row[3] || "").replace(/[^\d.-]/g, ""));
         const phone = String(row[4] || "").trim();
         const mapsLink = String(row[5] || "").trim();
 
         if (area && name && !isNaN(lat) && !isNaN(lng)) {
           allCustomers.push({
             id: i,
+            area,
+            name,
+            lat,
+            lng,
+            phone,
+            mapsLink,
+            visited: false
+          });
+        }
+      }
+
+      if (allCustomers.length === 0) {
+        document.getElementById("stopBadge").innerText = "Check Sheet";
+        document.getElementById("activeShopName").innerText = "Sheet loaded (" + rows.length + " rows), but no valid Latitude/Longitude numbers were found in Columns C & D.";
+        return;
+      }
+
+      populateAreaDropdown();
+      document.getElementById("stopBadge").innerText = "Ready";
+      document.getElementById("activeShopName").innerText = `Loaded ${allCustomers.length} shops. Select an area above to begin.`;
+    }
+
+    // Load CSV Data from Google Sheets
+    async function loadSheetData() {
+      document.getElementById("stopBadge").innerText = "Loading...";
+      document.getElementById("activeShopName").innerText = "Fetching customer data from Google Sheets...";
+
+      try {
+        // Method 1: Direct Fetch without altering Google's URL parameters
+        const response = await fetch(SHEET_CSV_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const csvText = await response.text();
+        const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+        processParsedRows(parsed.data);
+      } catch (err1) {
+        // Method 2: PapaParse built-in download fallback
+        Papa.parse(SHEET_CSV_URL, {
+          download: true,
+          header: false,
+          skipEmptyLines: true,
+          complete: function(results) {
+            processParsedRows(results.data);
+          },
+          error: function(err2) {
+            document.getElementById("stopBadge").innerText = "Error";
+            document.getElementById("activeShopName").innerText = "Could not read Google Sheet. Ensure the sheet is Published to Web as CSV.";
+          }
+        });
+      }
+    }
+
+    function populateAreaDropdown() {
+      const select = document.getElementById("areaSelect");
+      const areas = [...new Set(allCustomers.map(c => c.area))].sort();
+      select.innerHTML = '<option value="">-- Select Area (' + areas.length + ') --</option>';
+      areas.forEach(area => {
+        const opt = document.createElement("option");
+        opt.value = area;
+        opt.textContent = area;
+        select.appendChild(opt);
+      });
+
+      select.onchange = () => {
+        filterByArea(select.value);
+      };
+    }
+
+    function filterByArea(areaName) {
+      if (!markersLayer) return;
+      markersLayer.clearLayers();
+      if (routingControl) {
+        map.removeControl(routingControl);
+        routingControl = null;
+      }
+
+      areaShops = allCustomers.filter(c => c.area === areaName);
+      if (areaShops.length === 0) return;
+
+      const bounds = [];
+      areaShops.forEach(shop => {
+        const marker = L.marker([shop.lat, shop.lng]).addTo(markersLayer);
+        marker.bindPopup(`<b>${shop.name}</b><br><button onclick="routeToSpecificShop(${shop.id})" style="margin-top:5px;padding:4px 8px;cursor:pointer;">Route Here Now</button>`);
+        bounds.push([shop.lat, shop.lng]);
+      });
+
+      map.fitBounds(bounds, { padding: [50, 50] });
+      renderShopSequence();
+      document.getElementById("stopBadge").innerText = areaName;
+      document.getElementById("activeShopName").innerText = `${areaShops.length} shops loaded. Tap "📍 Start Nearest Route".`;
+      document.getElementById("activeActions").style.display = "none";
+      document.getElementById("distanceText").innerText = "";
+    }
+
+    function locateAndStartRoute() {
+      if (areaShops.length === 0) {
+        alert("Please select an Area from the dropdown first.");
+        return;
+      }
+
+      document.getElementById("stopBadge").innerText = "Locating GPS...";
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            updateUserMarker();
+            sortShopsByNearestChain(userLocation.lat, userLocation.lng);
+            routeToNextUnvisited();
+          },
+          () => {
+            const fallbackLat = areaShops[0] ? areaShops[0].lat : map.getCenter().lat;
+            const fallbackLng = areaShops[0] ? areaShops[0].lng : map.getCenter().lng;
+            userLocation = { lat: fallbackLat, lng: fallbackLng };
+            alert("GPS permission unavailable. Starting route from the first shop in this area.");
+            updateUserMarker();
+            sortShopsByNearestChain(userLocation.lat, userLocation.lng);
+            routeToNextUnvisited();
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      }
+    }
+
+    function updateUserMarker() {
+      if (!userLocation || !map) return;
+      if (userMarker) map.removeLayer(userMarker);
+      userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
+        radius: 8, fillColor: "#1a73e8", color: "#fff", weight: 3, fillOpacity: 1
+      }).addTo(map).bindPopup("Your Current Location");
+    }
+
+    function sortShopsByNearestChain(startLat, startLng) {
+      const visited = areaShops.filter(s => s.visited);
+      const unvisited = areaShops.filter(s => !s.visited);
+      const ordered = [];
+      let currLat = startLat;
+      let currLng = startLng;
+
+      while (unvisited.length > 0) {
+        let nearestIdx = 0;
+        let minDist = Infinity;
+        for (let i = 0; i < unvisited.length; i++) {
+          const d = getDistanceKm(currLat, currLng, unvisited[i].lat, unvisited[i].lng);
+          if (d < minDist) {
+            minDist = d;
+            nearestIdx = i;
+          }
+        }
+        const nextShop = unvisited.splice(nearestIdx, 1)[0];
+        nextShop.distanceFromPrev = minDist;
+        ordered.push(nextShop);
+        currLat = nextShop.lat;
+        currLng = nextShop.lng;
+      }
+
+      areaShops = [...ordered, ...visited];
+      renderShopSequence();
+    }
+
+    function routeToNextUnvisited() {
+      const nextShop = areaShops.find(s => !s.visited);
+      if (!nextShop) {
+        document.getElementById("stopBadge").innerText = "Completed";
+        document.getElementById("activeShopName").innerText = "🎉 All shops in this area visited!";
+        document.getElementById("activeActions").style.display = "none";
+        document.getElementById("distanceText").innerText = "";
+        if (routingControl) map.removeControl(routingControl);
+        return;
+      }
+      drawRouteToShop(nextShop);
+    }
+
+    window.routeToSpecificShop = function(shopId) {
+      const shop = areaShops.find(s => s.id === shopId);
+      if (shop) drawRouteToShop(shop);
+    };
+
+    function drawRouteToShop(shop) {
+      currentTargetShop = shop;
+      const startPt = userLocation ? L.latLng(userLocation.lat, userLocation.lng) : L.latLng(shop.lat, shop.lng);
+      const endPt = L.latLng(shop.lat, shop.lng);
+
+      if (routingControl) map.removeControl(routingControl);
+
+      routingControl = L.Routing.control({
+        waypoints: [startPt, endPt],
+        routeWhileDragging: false,
+        addWaypoints: false,
+        draggableWaypoints: false,
+        fitSelectedRoutes: true,
+        lineOptions: { styles: [{ color: '#1a73e8', opacity: 0.85, weight: 6 }] },
+        createMarker: function() { return null; }
+      }).addTo(map);
+
+      const distKm = getDistanceKm(startPt.lat, startPt.lng, shop.lat, shop.lng).toFixed(2);
+      document.getElementById("stopBadge").innerText = "Next Target Shop";
+      document.getElementById("distanceText").innerText = `~${distKm} km away`;
+      document.getElementById("activeShopName").innerText = shop.name;
+      document.getElementById("activeActions").style.display = "flex";
+
+      const callBtn = document.getElementById("callBtn");
+      if (shop.phone) {
+        callBtn.style.display = "inline-block";
+        callBtn.href = `tel:${shop.phone}`;
+      } else {
+        callBtn.style.display = "none";
+      }
+
+      const gmapsBtn = document.getElementById("gmapsBtn");
+      gmapsBtn.href = shop.mapsLink ? shop.mapsLink : `https://www.google.com/maps/dir/?api=1&destination=${shop.lat},${shop.lng}`;
+    }
+
+    function markCurrentVisited() {
+      if (!currentTargetShop) return;
+      currentTargetShop.visited = true;
+
+      userLocation = { lat: currentTargetShop.lat, lng: currentTargetShop.lng };
+      updateUserMarker();
+
+      sortShopsByNearestChain(userLocation.lat, userLocation.lng);
+      routeToNextUnvisited();
+    }
+
+    function renderShopSequence() {
+      const listEl = document.getElementById("shopList");
+      listEl.innerHTML = "";
+      areaShops.forEach((shop, idx) => {
+        const item = document.createElement("div");
+        item.className = "shop-item" + (shop.visited ? " visited" : "");
+        item.onclick = () => drawRouteToShop(shop);
+        item.innerHTML = `
+          <div>
+            <span class="shop-num">${idx + 1}</span>
+            <strong>${shop.name}</strong>
+          </div>
+          <span style="color:#6b7280;font-size:12px;">${shop.visited ? "Visited" : "Route ➔"}</span>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    // Load data immediately
+    loadSheetData();
+  </script>
+</body>
+</html>
