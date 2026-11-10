@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Customer Area Route Tracker</title>
 
-  <!-- Cloudflare CDN for Leaflet & Routing (Works reliably on all networks) -->
+  <!-- Cloudflare CDN for Leaflet & Routing -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.css" />
 
@@ -111,7 +111,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
   <script>
-    // HARDCODED GOOGLE SHEET PUBLISHED CSV URL (No extra query params that trigger 400 error)
+    // HARDCODED GOOGLE SHEET PUBLISHED CSV URL
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSAKuQG7Ap1FQQLm_5yiiFvgA7UFzjqmhRlxyHRFtYfBK7O2H4NkgGFBXoNTdLlvYPUAnHLDerZDucl/pub?output=csv";
 
     let allCustomers = [];
@@ -123,19 +123,18 @@
     let markersLayer = null;
     let userMarker = null;
 
-    // Initialize Map safely
+    // Initialize Map with 100% Free OpenStreetMap Tiles (No API Key Required)
     try {
       map = L.map('map', { zoomControl: false }).setView([18.5196, 73.8553], 13);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        maxZoom: 20
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
       }).addTo(map);
       markersLayer = L.layerGroup().addTo(map);
     } catch (err) {
       document.getElementById("activeShopName").innerText = "Map library failed to load: " + err.message;
     }
 
-    // Calculate straight-line distance in km (Haversine formula)
     function getDistanceKm(lat1, lon1, lat2, lon2) {
       const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -146,18 +145,15 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // Parse CSV Rows into Customer Array
     function processParsedRows(rows) {
       allCustomers = [];
 
-      // Start from row index 1 (skipping header row 0)
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         if (!row || row.length < 4) continue;
 
         const area = String(row[0] || "").trim();
         const name = String(row[1] || "").trim();
-        // Clean any hidden spaces or commas in coordinates
         const lat = parseFloat(String(row[2] || "").replace(/[^\d.-]/g, ""));
         const lng = parseFloat(String(row[3] || "").replace(/[^\d.-]/g, ""));
         const phone = String(row[4] || "").trim();
@@ -179,7 +175,7 @@
 
       if (allCustomers.length === 0) {
         document.getElementById("stopBadge").innerText = "Check Sheet";
-        document.getElementById("activeShopName").innerText = "Sheet loaded (" + rows.length + " rows), but no valid Latitude/Longitude numbers were found in Columns C & D.";
+        document.getElementById("activeShopName").innerText = "Sheet loaded, but no valid Latitude/Longitude numbers were found in Columns C & D.";
         return;
       }
 
@@ -188,20 +184,17 @@
       document.getElementById("activeShopName").innerText = `Loaded ${allCustomers.length} shops. Select an area above to begin.`;
     }
 
-    // Load CSV Data from Google Sheets
     async function loadSheetData() {
       document.getElementById("stopBadge").innerText = "Loading...";
       document.getElementById("activeShopName").innerText = "Fetching customer data from Google Sheets...";
 
       try {
-        // Method 1: Direct Fetch without altering Google's URL parameters
         const response = await fetch(SHEET_CSV_URL, { cache: "no-store" });
         if (!response.ok) throw new Error("HTTP " + response.status);
         const csvText = await response.text();
         const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
         processParsedRows(parsed.data);
       } catch (err1) {
-        // Method 2: PapaParse built-in download fallback
         Papa.parse(SHEET_CSV_URL, {
           download: true,
           header: false,
@@ -209,7 +202,7 @@
           complete: function(results) {
             processParsedRows(results.data);
           },
-          error: function(err2) {
+          error: function() {
             document.getElementById("stopBadge").innerText = "Error";
             document.getElementById("activeShopName").innerText = "Could not read Google Sheet. Ensure the sheet is Published to Web as CSV.";
           }
@@ -406,7 +399,6 @@
       });
     }
 
-    // Load data immediately
     loadSheetData();
   </script>
 </body>
