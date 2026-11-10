@@ -103,7 +103,6 @@
       padding: 10px 14px; background: #f9fafb; border-top: 1px solid #e5e7eb;
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
     }
-    /* Highlighted OK button when PENDING is selected */
     .btn-ok-order {
       background: #16a34a; color: #fff; padding: 10px 22px; font-size: 14px; font-weight: 800;
       border: none; border-radius: 8px; cursor: pointer; transition: 0.2s;
@@ -338,7 +337,7 @@
         <span id="distanceText" class="distance-label"></span>
       </div>
 
-      <!-- Visit Outcome Selector (Payment Collected Removed) -->
+      <!-- Visit Outcome Selector -->
       <div class="outcome-row" id="outcomeRow">
         <select id="visitOutcome" class="outcome-select" onchange="handleOutcomeChange()">
           <option value="">-- Select Visit Outcome --</option>
@@ -409,7 +408,6 @@
       console.error("Map init error", err);
     }
 
-    // Set default date in Admin Filter to Today
     function initAdminDate() {
       const today = new Date();
       const yyyy = today.getFullYear();
@@ -481,7 +479,6 @@
         return;
       }
 
-      // Check if Admin Login (Sheet 2 user with ID 'admin' or role 'ADMIN', or default admin/admin123)
       const matchedSheetUser = allUsers.find(
         u => String(u.userId).toLowerCase() === uidInput.toLowerCase() && String(u.password) === passInput
       );
@@ -597,7 +594,6 @@
       renderAdminTables();
     }
 
-    // Convert YYYY-MM-DD from input to DD/MM/YYYY to match Sheet 3 & Sheet 5
     function getFormattedSelectedDate() {
       const val = document.getElementById("adminDateInput").value;
       if (!val) return "";
@@ -611,7 +607,6 @@
       const container = document.getElementById("adminTableContainer");
 
       if (currentAdminTab === "logs") {
-        // Sheet 3 Columns: [0]Date, [1]Punch Time, [2]User ID, [3]Staff Name, [4]Action Type, [5]Area Name, [6]Shop Name, [7]Visit Outcome, [8]Location Status, [9]Distance(m), [10]Time Taken(Mins), [11]Coords, [12]Map Link
         const rows = allActivityLogs.slice(1).filter(r => {
           const matchDate = !selectedDateStr || String(r[0]).trim() === selectedDateStr;
           const matchStaff = selectedStaff === "ALL" || String(r[3]).trim().toLowerCase() === selectedStaff.toLowerCase();
@@ -658,7 +653,6 @@
         container.innerHTML = html;
 
       } else {
-        // Sheet 5 Columns: [0]Area Name, [1]Shop Name, [2]Group, [3]Item, [4]Qty, [5]UOM, [6]Scheme, [7]Scheme Status, [8]How Much Less, [9]Date, [10]Time, [11]Staff Name, [12]User ID
         const rows = allOrdersData.slice(1).filter(r => {
           const matchDate = !selectedDateStr || String(r[9]).trim() === selectedDateStr;
           const matchStaff = selectedStaff === "ALL" || String(r[11]).trim().toLowerCase() === selectedStaff.toLowerCase();
@@ -759,12 +753,8 @@
         <td>
           <select class="row-uom">
             <option value="Pcs">Pcs</option>
-            <option value="Box">Box</option>
-            <option value="Bag">Bag</option>
             <option value="Kg">Kg</option>
-            <option value="Case">Case</option>
             <option value="Pkt">Pkt</option>
-            <option value="Dozen">Dozen</option>
           </select>
         </td>
         <td class="td-scheme-col" style="display:none;">
@@ -842,7 +832,6 @@
       }
     }
 
-    // Dynamically show/hide Scheme column (if NET), How Much Less column (if DISCOUNT), and highlight OK button (if PENDING)
     function updateOrderTableColumnsAndButtons() {
       const rows = document.querySelectorAll("#orderRowsBody tr");
       let anyNet = false;
@@ -856,19 +845,16 @@
         if (st === "PENDING") anyPending = true;
       });
 
-      // Toggle 'Scheme' Column after UOM when NET is selected
       document.getElementById("thSchemeCol").style.display = anyNet ? "table-cell" : "none";
       document.querySelectorAll(".td-scheme-col").forEach(td => {
         td.style.display = anyNet ? "table-cell" : "none";
       });
 
-      // Toggle 'How Much Less' Column when DISCOUNT is selected
       document.getElementById("thDiscountCol").style.display = anyDiscount ? "table-cell" : "none";
       document.querySelectorAll(".td-discount-col").forEach(td => {
         td.style.display = anyDiscount ? "table-cell" : "none";
       });
 
-      // Highlight OK Button at bottom when PENDING is selected
       const okBtn = document.getElementById("orderOkBtn");
       const hintEl = document.getElementById("orderStatusHint");
       if (anyPending) {
@@ -880,7 +866,6 @@
       }
     }
 
-    // Collect Order Table Rows, Save to Sheet 5 + Complete Shop in Sheet 3
     function submitOrderAndCompleteShop() {
       const trs = document.querySelectorAll("#orderRowsBody tr");
       const collectedItems = [];
@@ -925,7 +910,6 @@
       completeShopWithData("Visited - Order Taken", collectedItems);
     }
 
-    // Send Log Row (Sheet 3) & Optional Order Rows (Sheet 5) via Apps Script POST
     async function sendLogToSheet3(logDetails) {
       const now = new Date();
       const minsSinceLast = lastPunchTimestamp
@@ -1329,7 +1313,6 @@
         return;
       }
 
-      // If "Visited - Order Taken" is selected, open the Order Popup so they fill the order table
       if (outcomeVal === "Visited - Order Taken") {
         openOrderModal();
         return;
