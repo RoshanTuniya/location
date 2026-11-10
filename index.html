@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Team Route & Attendance Tracker</title>
+  <title>Team Route, Order & Admin Tracker</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.css" />
@@ -33,6 +33,87 @@
       border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 6px;
     }
     .login-status { font-size: 12px; color: #dc2626; text-align: center; margin-top: 10px; min-height: 16px; font-weight: 600; }
+
+    /* Admin Dashboard Overlay */
+    .admin-overlay {
+      position: fixed; inset: 0; z-index: 2800; background: #f3f4f6;
+      display: none; flex-direction: column; overflow: hidden;
+    }
+    .admin-header {
+      background: #1e3a8a; color: #fff; padding: 12px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .admin-header h2 { font-size: 16px; font-weight: 800; }
+    .admin-filters {
+      background: #fff; padding: 12px 16px; border-bottom: 1px solid #e5e7eb;
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+    }
+    .filter-box { flex: 1; min-width: 140px; }
+    .filter-box label { display: block; font-size: 11px; font-weight: 700; color: #4b5563; margin-bottom: 4px; }
+    .filter-box select, .filter-box input {
+      width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 7px; font-size: 13px; font-weight: 600;
+    }
+    .admin-tabs {
+      display: flex; gap: 8px; padding: 10px 16px; background: #e5e7eb;
+    }
+    .tab-btn {
+      flex: 1; padding: 9px 12px; border: none; border-radius: 8px; font-size: 13px;
+      font-weight: 700; cursor: pointer; background: #fff; color: #374151;
+    }
+    .tab-btn.active { background: #1a73e8; color: #fff; }
+    .admin-stats {
+      display: flex; gap: 8px; padding: 8px 16px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 12px; font-weight: 700;
+    }
+    .stat-pill { background: #eff6ff; color: #1e40af; padding: 4px 10px; border-radius: 99px; border: 1px solid #bfdbfe; }
+    .admin-content { flex: 1; overflow: auto; padding: 12px 16px; }
+    .data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; font-size: 12px; }
+    .data-table th { background: #1f2937; color: #fff; text-align: left; padding: 9px 8px; white-space: nowrap; }
+    .data-table td { padding: 8px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+    .data-table tr:nth-child(even) { background: #f9fafb; }
+    .status-verified { color: #15803d; font-weight: 700; }
+    .status-flagged { color: #dc2626; font-weight: 700; }
+
+    /* Order Entry Modal Popup */
+    .order-modal-overlay {
+      position: fixed; inset: 0; z-index: 2500; background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center; padding: 10px;
+    }
+    .order-modal {
+      background: #ffffff; width: 100%; max-width: 780px; max-height: 90vh;
+      border-radius: 14px; display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .order-modal-header {
+      background: #1e3a8a; color: #fff; padding: 12px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .order-modal-header h3 { font-size: 15px; font-weight: 700; }
+    .order-modal-sub { font-size: 11px; color: #bfdbfe; margin-top: 2px; }
+    .order-modal-body { padding: 12px; overflow: auto; flex: 1; }
+    .order-table { width: 100%; border-collapse: collapse; min-width: 560px; }
+    .order-table th {
+      background: #f3f4f6; color: #111827; font-size: 11px; font-weight: 800;
+      padding: 8px 6px; border: 1px solid #d1d5db; text-align: left; text-transform: uppercase;
+    }
+    .order-table td { padding: 6px; border: 1px solid #e5e7eb; vertical-align: middle; }
+    .order-table select, .order-table input {
+      width: 100%; padding: 7px 6px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px;
+    }
+    .order-modal-footer {
+      padding: 10px 14px; background: #f9fafb; border-top: 1px solid #e5e7eb;
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    /* Highlighted OK button when PENDING is selected */
+    .btn-ok-order {
+      background: #16a34a; color: #fff; padding: 10px 22px; font-size: 14px; font-weight: 800;
+      border: none; border-radius: 8px; cursor: pointer; transition: 0.2s;
+    }
+    .btn-ok-order.highlight-pending {
+      background: #15803d;
+      outline: 3px solid #facc15;
+      box-shadow: 0 0 16px rgba(250, 204, 21, 0.95);
+      transform: scale(1.05);
+    }
 
     /* Compact Top Control Bar */
     .top-bar {
@@ -128,25 +209,102 @@
 </head>
 <body>
 
-  <!-- Staff Login Screen (Validates against Sheet 2 & Logs to Sheet 3) -->
+  <!-- 1. Staff & Admin Login Screen -->
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
-      <div class="login-title">🛵 Field Staff Login</div>
-      <div class="login-sub">Turn on phone GPS before signing in</div>
+      <div class="login-title">🛵 Team & Admin Login</div>
+      <div class="login-sub">Staff: Turn on GPS | Admin: Use Admin ID</div>
       <div class="form-group">
-        <label>User ID / Mobile</label>
-        <input type="text" id="loginUserId" placeholder="Enter User ID" autocomplete="username" />
+        <label>User ID</label>
+        <input type="text" id="loginUserId" placeholder="Enter Staff ID or 'admin'" autocomplete="username" />
       </div>
       <div class="form-group">
-        <label>Password / PIN</label>
+        <label>Password</label>
         <input type="password" id="loginPassword" placeholder="Enter Password" autocomplete="current-password" />
       </div>
-      <button class="login-btn" id="loginBtn" onclick="handleStaffLogin()">Sign In & Punch GPS</button>
+      <button class="login-btn" id="loginBtn" onclick="handleLogin()">Sign In</button>
       <div class="login-status" id="loginStatus">Connecting to Google Sheet...</div>
     </div>
   </div>
 
-  <!-- Top Bar -->
+  <!-- 2. Admin Dashboard (Logs & Orders by Team Member + Date) -->
+  <div class="admin-overlay" id="adminOverlay">
+    <div class="admin-header">
+      <h2>🛡️ Admin Activity & Order Dashboard</h2>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" onclick="refreshAdminData()">🔄 Refresh</button>
+        <button class="btn btn-outline" onclick="handleLogout()">🚪 Logout</button>
+      </div>
+    </div>
+
+    <div class="admin-filters">
+      <div class="filter-box">
+        <label>Select Team Member</label>
+        <select id="adminStaffSelect" onchange="renderAdminTables()">
+          <option value="ALL">All Team Members</option>
+        </select>
+      </div>
+      <div class="filter-box">
+        <label>Select Activity Date</label>
+        <input type="date" id="adminDateInput" onchange="renderAdminTables()" />
+      </div>
+    </div>
+
+    <div class="admin-tabs">
+      <button class="tab-btn active" id="tabLogsBtn" onclick="switchAdminTab('logs')">📋 Team Activity Logs (Sheet 3)</button>
+      <button class="tab-btn" id="tabOrdersBtn" onclick="switchAdminTab('orders')">🛒 Customer Orders (Sheet 5)</button>
+    </div>
+
+    <div class="admin-stats" id="adminStatsBar">
+      <span class="stat-pill" id="statTotal">Records: 0</span>
+      <span class="stat-pill" id="statVerified">At Shop: 0</span>
+      <span class="stat-pill" id="statAway">Away From Shop: 0</span>
+    </div>
+
+    <div class="admin-content">
+      <div id="adminTableContainer"></div>
+    </div>
+  </div>
+
+  <!-- 3. Enter Order Popup Modal (Sheet 4 Groups/Items -> Saves to Sheet 5) -->
+  <div class="order-modal-overlay" id="orderModalOverlay">
+    <div class="order-modal">
+      <div class="order-modal-header">
+        <div>
+          <h3>📝 Enter Customer Order</h3>
+          <div class="order-modal-sub" id="orderModalSub">Area - Shop Name</div>
+        </div>
+        <button class="btn btn-outline" onclick="closeOrderModal()">✕ Close</button>
+      </div>
+
+      <div class="order-modal-body">
+        <table class="order-table" id="orderEntryTable">
+          <thead>
+            <tr>
+              <th style="width:20%;">Group</th>
+              <th style="width:24%;">Item</th>
+              <th style="width:10%;">Qty</th>
+              <th style="width:12%;">UOM</th>
+              <th id="thSchemeCol" style="width:14%; display:none; background:#dbeafe; color:#1e3a8a;">Scheme</th>
+              <th style="width:15%;">Scheme Status</th>
+              <th id="thDiscountCol" style="width:14%; display:none; background:#fef3c7; color:#92400e;">How Much Less</th>
+              <th style="width:5%;"></th>
+            </tr>
+          </thead>
+          <tbody id="orderRowsBody"></tbody>
+        </table>
+
+        <button class="btn btn-outline" style="margin-top:10px;" onclick="addOrderRow()">➕ Add Another Item</button>
+      </div>
+
+      <div class="order-modal-footer">
+        <span style="font-size:11px; color:#4b5563; font-weight:600;" id="orderStatusHint">Select Scheme Status (NET / PENDING / DISCOUNT)</span>
+        <button class="btn-ok-order" id="orderOkBtn" onclick="submitOrderAndCompleteShop()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Rider Map Interface -->
   <div class="top-bar">
     <select id="areaSelect">
       <option value="">Select Area...</option>
@@ -156,7 +314,6 @@
     <button class="btn btn-outline" onclick="handleLogout()" title="Logout">🚪</button>
   </div>
 
-  <!-- Live Turn-by-Turn Voice Banner -->
   <div class="nav-banner" id="navBanner">
     <div class="nav-step-main">
       <div class="nav-icon" id="navTurnIcon">⬆️</div>
@@ -168,7 +325,6 @@
     <button class="voice-btn" onclick="speakCurrentStep()">🗣️ Repeat</button>
   </div>
 
-  <!-- Map -->
   <div id="map"></div>
 
   <!-- Compact Bottom Footer -->
@@ -182,11 +338,11 @@
         <span id="distanceText" class="distance-label"></span>
       </div>
 
-      <!-- Visit Outcome Selector & Active Staff Indicator -->
+      <!-- Visit Outcome Selector (Payment Collected Removed) -->
       <div class="outcome-row" id="outcomeRow">
-        <select id="visitOutcome" class="outcome-select">
+        <select id="visitOutcome" class="outcome-select" onchange="handleOutcomeChange()">
+          <option value="">-- Select Visit Outcome --</option>
           <option value="Visited - Order Taken">✅ Visited - Order Taken</option>
-          <option value="Payment Collected">💰 Payment Collected</option>
           <option value="Visited - No Order">➖ Visited - No Order</option>
           <option value="Shop Closed">🔒 Shop Closed</option>
         </select>
@@ -209,18 +365,19 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
   <script>
-    // HARDCODED GOOGLE APPS SCRIPT WEB APP URL (Sheet 1, Sheet 2 & Sheet 3)
+    // HARDCODED GOOGLE APPS SCRIPT WEB APP URL
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzn35yS08Lvf_TbljoPDIdWOaU2MOPTRUNH_lkx6-MU6T1SlAjlYisx6tHZ-Z5OO907yQ/exec";
-
-    // Backup Published CSV URL for Sheet 1
     const BACKUP_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSAKuQG7Ap1FQQLm_5yiiFvgA7UFzjqmhRlxyHRFtYfBK7O2H4NkgGFBXoNTdLlvYPUAnHLDerZDucl/pub?output=csv";
-
-    // Geofence Radius in Meters (Within 80m = AT_SHOP, >80m = AWAY_FROM_SHOP)
     const GEOFENCE_LIMIT_METERS = 80;
 
     let allCustomers = [];
     let allUsers = [];
-    let currentUser = null; // { userId, name, allowedAreas }
+    let allCatalogItems = []; // Sheet 4: { group, item }
+    let allActivityLogs = []; // Sheet 3 rows
+    let allOrdersData = [];   // Sheet 5 rows
+    let currentAdminTab = "logs";
+
+    let currentUser = null;
     let lastPunchTimestamp = null;
 
     let areaShops = [];
@@ -252,7 +409,16 @@
       console.error("Map init error", err);
     }
 
-    // Request live GPS silently on page open so coordinates are ready at login
+    // Set default date in Admin Filter to Today
+    function initAdminDate() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      document.getElementById("adminDateInput").value = `${yyyy}-${mm}-${dd}`;
+    }
+    initAdminDate();
+
     function prewarmGps() {
       if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
@@ -266,33 +432,32 @@
       );
     }
 
-    // Load Users (Sheet 2) & Shops (Sheet 1) from Apps Script Web App
+    // Load Sheets 1, 2, 3, 4, 5 from Apps Script
     async function loadAllData() {
       const statusEl = document.getElementById("loginStatus");
       statusEl.style.color = "#1e40af";
-      statusEl.innerText = "Loading staff credentials & shops...";
+      statusEl.innerText = "Loading staff, items & shops...";
 
       try {
         const res = await fetch(APPS_SCRIPT_URL, { cache: "no-store", redirect: "follow" });
         const data = await res.json();
 
         if (data.users) allUsers = data.users;
+        if (data.items) allCatalogItems = data.items;
+        if (data.logs) allActivityLogs = data.logs;
+        if (data.orders) allOrdersData = data.orders;
+
         if (data.shops && data.shops.length > 1) {
           processParsedRows(data.shops);
         } else {
           loadFallbackCsvShops();
         }
 
-        if (allUsers.length > 0) {
-          statusEl.style.color = "#16a34a";
-          statusEl.innerText = `Ready (${allUsers.length} staff accounts loaded).`;
-        } else {
-          statusEl.style.color = "#d97706";
-          statusEl.innerText = "Connected, but no users found in Sheet 2 (Row 2 onwards).";
-        }
+        statusEl.style.color = "#16a34a";
+        statusEl.innerText = `Ready (${allUsers.length} accounts loaded).`;
       } catch (err) {
         statusEl.style.color = "#dc2626";
-        statusEl.innerText = "Connection error. Ensure Apps Script access is set to 'Anyone'.";
+        statusEl.innerText = "Connection error. Ensure Apps Script is updated & set to 'Anyone'.";
         loadFallbackCsvShops();
       }
     }
@@ -304,8 +469,8 @@
       });
     }
 
-    // Verify Staff Login against Sheet 2 and Write LOGIN Punch to Sheet 3
-    function handleStaffLogin() {
+    // Handle Staff or Admin Login
+    function handleLogin() {
       const uidInput = document.getElementById("loginUserId").value.trim();
       const passInput = document.getElementById("loginPassword").value.trim();
       const statusEl = document.getElementById("loginStatus");
@@ -316,30 +481,35 @@
         return;
       }
 
-      if (allUsers.length === 0) {
-        statusEl.style.color = "#dc2626";
-        statusEl.innerText = "No staff accounts loaded from Sheet 2 yet.";
-        return;
-      }
-
-      const matchedUser = allUsers.find(
+      // Check if Admin Login (Sheet 2 user with ID 'admin' or role 'ADMIN', or default admin/admin123)
+      const matchedSheetUser = allUsers.find(
         u => String(u.userId).toLowerCase() === uidInput.toLowerCase() && String(u.password) === passInput
       );
 
-      if (!matchedUser) {
+      const isAdminUser =
+        (matchedSheetUser && (matchedSheetUser.userId.toLowerCase() === "admin" || matchedSheetUser.allowedAreas.toUpperCase() === "ADMIN")) ||
+        (uidInput.toLowerCase() === "admin" && passInput === "admin123");
+
+      if (isAdminUser) {
+        currentUser = { userId: "admin", name: "Admin", allowedAreas: "ALL" };
+        document.getElementById("loginOverlay").style.display = "none";
+        openAdminDashboard();
+        return;
+      }
+
+      if (!matchedSheetUser) {
         statusEl.style.color = "#dc2626";
         statusEl.innerText = "Invalid User ID or Password.";
         return;
       }
 
-      currentUser = matchedUser;
+      currentUser = matchedSheetUser;
       lastPunchTimestamp = new Date();
       document.getElementById("staffTag").innerText = `👤 ${currentUser.name}`;
       document.getElementById("loginOverlay").style.display = "none";
 
       populateAreaDropdown();
 
-      // Capture GPS & Send LOGIN Event to Sheet 3
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           pos => {
@@ -371,21 +541,391 @@
     }
 
     function handleLogout() {
-      if (!currentUser) return;
-      sendLogToSheet3({
-        actionType: "LOGOUT",
-        area: document.getElementById("areaSelect").value || "-",
-        shopName: "-",
-        outcome: "Session Ended",
-        locationStatus: hasRealGpsFix ? "GPS_ACTIVE" : "GPS_OFF",
-        distanceMeters: ""
-      });
+      if (currentUser && currentUser.userId !== "admin") {
+        sendLogToSheet3({
+          actionType: "LOGOUT",
+          area: document.getElementById("areaSelect").value || "-",
+          shopName: "-",
+          outcome: "Session Ended",
+          locationStatus: hasRealGpsFix ? "GPS_ACTIVE" : "GPS_OFF",
+          distanceMeters: ""
+        });
+      }
       currentUser = null;
+      document.getElementById("adminOverlay").style.display = "none";
       document.getElementById("loginPassword").value = "";
       document.getElementById("loginOverlay").style.display = "flex";
     }
 
-    // Send Log Row to Sheet 3 via Apps Script POST
+    // ================= ADMIN DASHBOARD FUNCTIONS =================
+    function openAdminDashboard() {
+      document.getElementById("adminOverlay").style.display = "flex";
+      populateAdminStaffDropdown();
+      refreshAdminData();
+    }
+
+    function populateAdminStaffDropdown() {
+      const sel = document.getElementById("adminStaffSelect");
+      const staffNames = [...new Set(allUsers.filter(u => u.userId.toLowerCase() !== "admin").map(u => u.name))].sort();
+      sel.innerHTML = '<option value="ALL">All Team Members</option>';
+      staffNames.forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      });
+    }
+
+    async function refreshAdminData() {
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, { cache: "no-store", redirect: "follow" });
+        const data = await res.json();
+        if (data.users) allUsers = data.users;
+        if (data.logs) allActivityLogs = data.logs;
+        if (data.orders) allOrdersData = data.orders;
+        populateAdminStaffDropdown();
+        renderAdminTables();
+      } catch (e) {
+        console.error("Failed to refresh admin data", e);
+      }
+    }
+
+    function switchAdminTab(tab) {
+      currentAdminTab = tab;
+      document.getElementById("tabLogsBtn").classList.toggle("active", tab === "logs");
+      document.getElementById("tabOrdersBtn").classList.toggle("active", tab === "orders");
+      renderAdminTables();
+    }
+
+    // Convert YYYY-MM-DD from input to DD/MM/YYYY to match Sheet 3 & Sheet 5
+    function getFormattedSelectedDate() {
+      const val = document.getElementById("adminDateInput").value;
+      if (!val) return "";
+      const parts = val.split("-");
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    function renderAdminTables() {
+      const selectedStaff = document.getElementById("adminStaffSelect").value;
+      const selectedDateStr = getFormattedSelectedDate();
+      const container = document.getElementById("adminTableContainer");
+
+      if (currentAdminTab === "logs") {
+        // Sheet 3 Columns: [0]Date, [1]Punch Time, [2]User ID, [3]Staff Name, [4]Action Type, [5]Area Name, [6]Shop Name, [7]Visit Outcome, [8]Location Status, [9]Distance(m), [10]Time Taken(Mins), [11]Coords, [12]Map Link
+        const rows = allActivityLogs.slice(1).filter(r => {
+          const matchDate = !selectedDateStr || String(r[0]).trim() === selectedDateStr;
+          const matchStaff = selectedStaff === "ALL" || String(r[3]).trim().toLowerCase() === selectedStaff.toLowerCase();
+          return matchDate && matchStaff;
+        });
+
+        const verifiedCount = rows.filter(r => String(r[8]).includes("AT_SHOP")).length;
+        const awayCount = rows.filter(r => String(r[8]).includes("AWAY_FROM_SHOP")).length;
+
+        document.getElementById("statTotal").innerText = `Log Entries: ${rows.length}`;
+        document.getElementById("statVerified").innerText = `At Shop (Verified): ${verifiedCount}`;
+        document.getElementById("statAway").innerText = `Away From Shop: ${awayCount}`;
+
+        if (rows.length === 0) {
+          container.innerHTML = `<p style="padding:20px; text-align:center; color:#6b7280; font-weight:600;">No activity logs found for ${selectedStaff} on ${selectedDateStr || "selected date"}.</p>`;
+          return;
+        }
+
+        let html = `<table class="data-table"><thead><tr>
+          <th>Time</th><th>Staff Name</th><th>Action</th><th>Area</th><th>Shop Name</th>
+          <th>Outcome</th><th>Location Status</th><th>Distance</th><th>Mins Taken</th><th>GPS Map</th>
+        </tr></thead><tbody>`;
+
+        rows.forEach(r => {
+          const locStatus = String(r[8] || "");
+          const statusClass = locStatus.includes("AT_SHOP") ? "status-verified" : (locStatus.includes("AWAY") ? "status-flagged" : "");
+          const mapUrl = String(r[12] || "");
+          const mapCell = mapUrl.startsWith("http") ? `<a href="${mapUrl}" target="_blank" style="color:#1a73e8;font-weight:700;">📍 View</a>` : "-";
+
+          html += `<tr>
+            <td><b>${r[1] || ""}</b></td>
+            <td>${r[3] || ""}</td>
+            <td>${r[4] || ""}</td>
+            <td>${r[5] || ""}</td>
+            <td><b>${r[6] || ""}</b></td>
+            <td>${r[7] || ""}</td>
+            <td class="${statusClass}">${locStatus}</td>
+            <td>${r[9] !== "" ? r[9] + " m" : "-"}</td>
+            <td>${r[10] || "-"}</td>
+            <td>${mapCell}</td>
+          </tr>`;
+        });
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+
+      } else {
+        // Sheet 5 Columns: [0]Area Name, [1]Shop Name, [2]Group, [3]Item, [4]Qty, [5]UOM, [6]Scheme, [7]Scheme Status, [8]How Much Less, [9]Date, [10]Time, [11]Staff Name, [12]User ID
+        const rows = allOrdersData.slice(1).filter(r => {
+          const matchDate = !selectedDateStr || String(r[9]).trim() === selectedDateStr;
+          const matchStaff = selectedStaff === "ALL" || String(r[11]).trim().toLowerCase() === selectedStaff.toLowerCase();
+          return matchDate && matchStaff;
+        });
+
+        const uniqueShopsOrdered = new Set(rows.map(r => r[1])).size;
+        document.getElementById("statTotal").innerText = `Order Line Items: ${rows.length}`;
+        document.getElementById("statVerified").innerText = `Shops Ordered: ${uniqueShopsOrdered}`;
+        document.getElementById("statAway").innerText = `Date: ${selectedDateStr}`;
+
+        if (rows.length === 0) {
+          container.innerHTML = `<p style="padding:20px; text-align:center; color:#6b7280; font-weight:600;">No orders found in Sheet 5 for ${selectedStaff} on ${selectedDateStr || "selected date"}.</p>`;
+          return;
+        }
+
+        let html = `<table class="data-table"><thead><tr>
+          <th>Area Name</th><th>Shop Name</th><th>Group</th><th>Item</th><th>Qty</th>
+          <th>UOM</th><th>Scheme</th><th>Scheme Status</th><th>How Much Less</th><th>Time</th><th>Staff</th>
+        </tr></thead><tbody>`;
+
+        rows.forEach(r => {
+          html += `<tr>
+            <td>${r[0] || ""}</td>
+            <td><b>${r[1] || ""}</b></td>
+            <td>${r[2] || ""}</td>
+            <td><b>${r[3] || ""}</b></td>
+            <td><b>${r[4] || ""}</b></td>
+            <td>${r[5] || ""}</td>
+            <td>${r[6] || "-"}</td>
+            <td><b>${r[7] || ""}</b></td>
+            <td>${r[8] || "-"}</td>
+            <td>${r[10] || ""}</td>
+            <td>${r[11] || ""}</td>
+          </tr>`;
+        });
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+      }
+    }
+
+    // ================= ORDER ENTRY POPUP FUNCTIONS (SHEET 4 -> SHEET 5) =================
+    function handleOutcomeChange() {
+      const outcome = document.getElementById("visitOutcome").value;
+      if (outcome === "Visited - Order Taken") {
+        if (!currentTargetShop) {
+          alert("Please start a route or select a shop first.");
+          document.getElementById("visitOutcome").value = "";
+          return;
+        }
+        openOrderModal();
+      }
+    }
+
+    function openOrderModal() {
+      if (!currentTargetShop) return;
+      document.getElementById("orderModalSub").innerText = `${currentTargetShop.area} — ${currentTargetShop.name}`;
+      const tbody = document.getElementById("orderRowsBody");
+      tbody.innerHTML = "";
+      addOrderRow();
+      updateOrderTableColumnsAndButtons();
+      document.getElementById("orderModalOverlay").style.display = "flex";
+    }
+
+    function closeOrderModal() {
+      document.getElementById("orderModalOverlay").style.display = "none";
+    }
+
+    function getUniqueGroups() {
+      const groups = [...new Set(allCatalogItems.map(i => i.group))].sort();
+      return groups;
+    }
+
+    function addOrderRow() {
+      const tbody = document.getElementById("orderRowsBody");
+      const tr = document.createElement("tr");
+
+      const groups = getUniqueGroups();
+      let groupOptions = `<option value="">-- Group --</option>`;
+      groups.forEach(g => {
+        groupOptions += `<option value="${g}">${g}</option>`;
+      });
+
+      tr.innerHTML = `
+        <td>
+          <select class="row-group" onchange="onRowGroupChange(this)">
+            ${groupOptions}
+          </select>
+        </td>
+        <td>
+          <select class="row-item">
+            <option value="">-- Select Group First --</option>
+          </select>
+        </td>
+        <td>
+          <input type="number" class="row-qty" min="1" placeholder="Qty" />
+        </td>
+        <td>
+          <select class="row-uom">
+            <option value="Pcs">Pcs</option>
+            <option value="Box">Box</option>
+            <option value="Bag">Bag</option>
+            <option value="Kg">Kg</option>
+            <option value="Case">Case</option>
+            <option value="Pkt">Pkt</option>
+            <option value="Dozen">Dozen</option>
+          </select>
+        </td>
+        <td class="td-scheme-col" style="display:none;">
+          <input type="text" class="row-scheme" placeholder="Enter Scheme" disabled />
+        </td>
+        <td>
+          <select class="row-scheme-status" onchange="onRowSchemeStatusChange(this)">
+            <option value="">-- Select --</option>
+            <option value="PENDING">PENDING</option>
+            <option value="NET">NET</option>
+            <option value="DISCOUNT">DISCOUNT</option>
+          </select>
+        </td>
+        <td class="td-discount-col" style="display:none;">
+          <input type="text" class="row-discount" placeholder="How much less?" disabled />
+        </td>
+        <td style="text-align:center;">
+          <button class="btn btn-outline" style="padding:4px 7px;" onclick="removeOrderRow(this)">✕</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+      updateOrderTableColumnsAndButtons();
+    }
+
+    function removeOrderRow(btn) {
+      const tbody = document.getElementById("orderRowsBody");
+      if (tbody.querySelectorAll("tr").length > 1) {
+        btn.closest("tr").remove();
+        updateOrderTableColumnsAndButtons();
+      }
+    }
+
+    function onRowGroupChange(groupSelect) {
+      const selectedGroup = groupSelect.value;
+      const tr = groupSelect.closest("tr");
+      const itemSelect = tr.querySelector(".row-item");
+
+      const matchingItems = allCatalogItems.filter(x => x.group === selectedGroup).map(x => x.item);
+      itemSelect.innerHTML = `<option value="">-- Select Item (${matchingItems.length}) --</option>`;
+      matchingItems.forEach(itemName => {
+        const opt = document.createElement("option");
+        opt.value = itemName;
+        opt.textContent = itemName;
+        itemSelect.appendChild(opt);
+      });
+    }
+
+    function onRowSchemeStatusChange(statusSelect) {
+      const tr = statusSelect.closest("tr");
+      const status = statusSelect.value;
+      const schemeInput = tr.querySelector(".row-scheme");
+      const discountInput = tr.querySelector(".row-discount");
+
+      if (status === "NET") {
+        schemeInput.disabled = false;
+        discountInput.value = "";
+        discountInput.disabled = true;
+      } else if (status === "DISCOUNT") {
+        discountInput.disabled = false;
+        schemeInput.value = "";
+        schemeInput.disabled = true;
+      } else {
+        schemeInput.value = "";
+        schemeInput.disabled = true;
+        discountInput.value = "";
+        discountInput.disabled = true;
+      }
+
+      updateOrderTableColumnsAndButtons();
+
+      if (status === "NET") {
+        schemeInput.focus();
+      } else if (status === "DISCOUNT") {
+        discountInput.focus();
+      }
+    }
+
+    // Dynamically show/hide Scheme column (if NET), How Much Less column (if DISCOUNT), and highlight OK button (if PENDING)
+    function updateOrderTableColumnsAndButtons() {
+      const rows = document.querySelectorAll("#orderRowsBody tr");
+      let anyNet = false;
+      let anyDiscount = false;
+      let anyPending = false;
+
+      rows.forEach(tr => {
+        const st = tr.querySelector(".row-scheme-status").value;
+        if (st === "NET") anyNet = true;
+        if (st === "DISCOUNT") anyDiscount = true;
+        if (st === "PENDING") anyPending = true;
+      });
+
+      // Toggle 'Scheme' Column after UOM when NET is selected
+      document.getElementById("thSchemeCol").style.display = anyNet ? "table-cell" : "none";
+      document.querySelectorAll(".td-scheme-col").forEach(td => {
+        td.style.display = anyNet ? "table-cell" : "none";
+      });
+
+      // Toggle 'How Much Less' Column when DISCOUNT is selected
+      document.getElementById("thDiscountCol").style.display = anyDiscount ? "table-cell" : "none";
+      document.querySelectorAll(".td-discount-col").forEach(td => {
+        td.style.display = anyDiscount ? "table-cell" : "none";
+      });
+
+      // Highlight OK Button at bottom when PENDING is selected
+      const okBtn = document.getElementById("orderOkBtn");
+      const hintEl = document.getElementById("orderStatusHint");
+      if (anyPending) {
+        okBtn.classList.add("highlight-pending");
+        hintEl.innerText = "⚡ PENDING selected — Tap highlighted OK button to submit!";
+      } else {
+        okBtn.classList.remove("highlight-pending");
+        hintEl.innerText = "Fill order details and tap OK to save to Sheet 5.";
+      }
+    }
+
+    // Collect Order Table Rows, Save to Sheet 5 + Complete Shop in Sheet 3
+    function submitOrderAndCompleteShop() {
+      const trs = document.querySelectorAll("#orderRowsBody tr");
+      const collectedItems = [];
+
+      for (let i = 0; i < trs.length; i++) {
+        const tr = trs[i];
+        const group = tr.querySelector(".row-group").value.trim();
+        const item = tr.querySelector(".row-item").value.trim();
+        const qty = tr.querySelector(".row-qty").value.trim();
+        const uom = tr.querySelector(".row-uom").value.trim();
+        const schemeStatus = tr.querySelector(".row-scheme-status").value.trim();
+        const scheme = tr.querySelector(".row-scheme").value.trim();
+        const discountLess = tr.querySelector(".row-discount").value.trim();
+
+        if (!group || !item || !qty || !schemeStatus) {
+          alert(`Please complete Group, Item, Qty, and Scheme Status in row ${i + 1}.`);
+          return;
+        }
+        if (schemeStatus === "NET" && !scheme) {
+          alert(`Please enter the Scheme in row ${i + 1}.`);
+          tr.querySelector(".row-scheme").focus();
+          return;
+        }
+        if (schemeStatus === "DISCOUNT" && !discountLess) {
+          alert(`Please enter How Much Less in row ${i + 1}.`);
+          tr.querySelector(".row-discount").focus();
+          return;
+        }
+
+        collectedItems.push({
+          group,
+          item,
+          qty,
+          uom,
+          scheme: schemeStatus === "NET" ? scheme : "-",
+          schemeStatus,
+          discountLess: schemeStatus === "DISCOUNT" ? discountLess : "-"
+        });
+      }
+
+      closeOrderModal();
+      completeShopWithData("Visited - Order Taken", collectedItems);
+    }
+
+    // Send Log Row (Sheet 3) & Optional Order Rows (Sheet 5) via Apps Script POST
     async function sendLogToSheet3(logDetails) {
       const now = new Date();
       const minsSinceLast = lastPunchTimestamp
@@ -404,7 +944,8 @@
         distanceMeters: logDetails.distanceMeters !== undefined ? logDetails.distanceMeters : "",
         minutesSinceLast: minsSinceLast,
         staffLat: userLocation && hasRealGpsFix ? userLocation.lat.toFixed(6) : "",
-        staffLng: userLocation && hasRealGpsFix ? userLocation.lng.toFixed(6) : ""
+        staffLng: userLocation && hasRealGpsFix ? userLocation.lng.toFixed(6) : "",
+        orderItems: logDetails.orderItems || []
       };
 
       try {
@@ -414,7 +955,7 @@
           body: JSON.stringify(payload)
         });
       } catch (err) {
-        console.error("Failed to write log to Sheet 3:", err);
+        console.error("Failed to write log/order:", err);
       }
     }
 
@@ -489,7 +1030,6 @@
       const select = document.getElementById("areaSelect");
       let areas = [...new Set(allCustomers.map(c => c.area))].sort();
 
-      // Filter areas if staff has specific assigned areas in Sheet 2 Column D
       if (currentUser && currentUser.allowedAreas && currentUser.allowedAreas.toUpperCase() !== "ALL") {
         const allowedList = currentUser.allowedAreas.split(",").map(a => a.trim().toLowerCase());
         areas = areas.filter(a => allowedList.includes(a.toLowerCase()));
@@ -724,6 +1264,7 @@
     function drawRouteToShop(shop, announceStart) {
       currentTargetShop = shop;
       lastRedrawLocation = userLocation ? { ...userLocation } : null;
+      document.getElementById("visitOutcome").value = "";
 
       const startPt = userLocation ? L.latLng(userLocation.lat, userLocation.lng) : L.latLng(shop.lat + 0.002, shop.lng - 0.002);
       const endPt = L.latLng(shop.lat, shop.lng);
@@ -779,12 +1320,26 @@
       }
     }
 
-    // Complete Shop, Verify Geofence Distance, Log to Sheet 3, and Advance
     function markCurrentVisited() {
       if (!currentTargetShop) return;
-      const completedShop = currentTargetShop;
       const outcomeVal = document.getElementById("visitOutcome").value;
 
+      if (!outcomeVal) {
+        alert("Please select a Visit Outcome first.");
+        return;
+      }
+
+      // If "Visited - Order Taken" is selected, open the Order Popup so they fill the order table
+      if (outcomeVal === "Visited - Order Taken") {
+        openOrderModal();
+        return;
+      }
+
+      completeShopWithData(outcomeVal, []);
+    }
+
+    function completeShopWithData(outcomeVal, orderItemsArray) {
+      const completedShop = currentTargetShop;
       let distanceMeters = "";
       let locationStatus = "GPS_OFF";
 
@@ -805,7 +1360,8 @@
         shopName: completedShop.name,
         outcome: outcomeVal,
         locationStatus: locationStatus,
-        distanceMeters: distanceMeters
+        distanceMeters: distanceMeters,
+        orderItems: orderItemsArray
       });
 
       completedShop.visited = true;
