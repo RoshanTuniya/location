@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Customer Area Route Tracker</title>
+
+  <!-- Leaflet Map & Routing CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+    body, html { height: 100%; width: 100%; overflow: hidden; background: #f3f4f6; }
+
+    /* Top Control Bar */
+    .top-bar {
+      position: absolute; top: 10px; left: 10px; right: 10px; z-index: 1000;
+      background: #ffffff; padding: 10px 12px; border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.12); display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    .top-bar select {
+      flex: 1; min-width: 150px; padding: 10px; border: 1px solid #d1d5db;
+      border-radius: 8px; font-size: 14px; font-weight: 600; background: #f9fafb;
+    }
+    .btn {
+      padding: 10px 12px; border: none; border-radius: 8px; font-size: 13px;
+      font-weight: 600; cursor: pointer; transition: 0.15s;
+    }
+    .btn-primary { background: #1a73e8; color: #fff; }
+    .btn-success { background: #16a34a; color: #fff; }
+    .btn-outline { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+
+    /* Map Container */
+    #map { height: 100%; width: 100%; z-index: 1; }
+
+    /* Bottom Active Stop & Queue Panel */
+    .bottom-panel {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000;
+      background: #ffffff; border-radius: 18px 18px 0 0;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.15); padding: 14px 16px;
+      max-height: 46vh; display: flex; flex-direction: column; gap: 10px;
+    }
+    .active-card {
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px;
+    }
+    .active-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .badge {
+      background: #1a73e8; color: #fff; font-size: 11px; font-weight: 700;
+      padding: 3px 8px; border-radius: 99px; text-transform: uppercase;
+    }
+    .shop-title { font-size: 16px; font-weight: 700; color: #111827; }
+    .action-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .action-row .btn, .action-row a { flex: 1; text-align: center; text-decoration: none; }
+
+    /* Shop Sequence List */
+    .shop-list { overflow-y: auto; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+    .shop-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 6px; border-bottom: 1px solid #f3f4f6; font-size: 13px; cursor: pointer;
+    }
+    .shop-item.visited { opacity: 0.5; text-decoration: line-through; }
+    .shop-num {
+      display: inline-block; width: 22px; height: 22px; border-radius: 50%;
+      background: #e5e7eb; color: #111827; text-align: center; line-height: 22px;
+      font-weight: 700; font-size: 11px; margin-right: 8px;
+    }
+
+    /* Collapse Leaflet default routing box so map stays clean */
+    .leaflet-routing-container {
+      max-height: 130px; overflow-y: auto; font-size: 12px;
+      margin-top: 70px !important; border-radius: 8px !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Controls -->
+  <div class="top-bar">
+    <select id="areaSelect">
+      <option value="">Loading areas...</option>
+    </select>
+    <button class="btn btn-primary" onclick="locateAndStartRoute()">📍 Start Nearest Route</button>
+    <button class="btn btn-outline" onclick="loadSheetData()">🔄 Reload</button>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Bottom Active Shop & Route Queue -->
+  <div class="bottom-panel">
+    <div id="activeStopContainer" class="active-card">
+      <div class="active-header">
+        <span class="badge" id="stopBadge">Loading</span>
+        <span id="distanceText" style="font-size: 12px; font-weight: 600; color: #1e40af;"></span>
+      </div>
+      <div class="shop-title" id="activeShopName">Connecting to Google Sheet...</div>
+      <div class="action-row" id="activeActions" style="display: none;">
+        <button class="btn btn-success" onclick="markCurrentVisited()">✅ Reached / Next Shop</button>
+        <a id="callBtn" class="btn btn-outline" href="#" style="display:none;">📞 Call</a>
+        <a id="gmapsBtn" class="btn btn-outline" href="#" target="_blank">🗺️ G-Maps App</a>
+      </div>
+    </div>
+
+    <div class="shop-list" id="shopList"></div>
+  </div>
+
+  <!-- JS Libraries -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <script>
+    // HARDCODED GOOGLE SHEET PUBLISHED CSV URL
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSAKuQG7Ap1FQQLm_5yiiFvgA7UFzjqmhRlxyHRFtYfBK7O2H4NkgGFBXoNTdLlvYPUAnHLDerZDucl/pub?output=csv";
+
+    let allCustomers = [];
+    let areaShops = [];
+    let userLocation = null; // { lat, lng }
+    let currentTargetShop = null;
+    let routingControl = null;
+    let markersLayer = L.layerGroup();
+    let userMarker = null;
+
+    // Initialize Map (Centered around Pune by default)
+    const map = L.map('map', { zoomControl: false }).setView([18.5196, 73.8553], 13);
+
+    // Clean Google-Maps-like Basemap (CartoDB Voyager)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      maxZoom: 20
+    }).addTo(map);
+
+    markersLayer.addTo(map);
+
+    // Calculate straight-line distance in km (Haversine formula)
+    function getDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // Parse CSV Text into Customer Array
+    function processCsvText(csvText) {
+      const results = Papa.parse(csvText, {
+        header: false,
+        skipEmptyLines: true
+      });
+
+      const rows = results.data;
+      allCustomers = [];
+
+      // Start from row index 1 (skipping header row 0)
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const area = String(row[0] || "").trim();
+        const name = String(row[1] || "").trim();
+        const lat = parseFloat(String(row[2] || "").trim());
+        const lng = parseFloat(String(row[3] || "").trim());
+        const phone = String(row[4] || "").trim();
+        const mapsLink = String(row[5] || "").trim();
+
+        if (area && name && !isNaN(lat) && !isNaN(lng)) {
+          allCustomers.push({
+            id: i,
