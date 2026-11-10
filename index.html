@@ -3,15 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Two-Wheeler Customer Route Tracker</title>
+  <title>Team Route & Attendance Tracker</title>
 
-  <!-- Cloudflare CDN for Leaflet & Routing -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.css" />
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
     body, html { height: 100%; width: 100%; overflow: hidden; background: #f3f4f6; }
+
+    /* Fullscreen Login Overlay */
+    .login-overlay {
+      position: fixed; inset: 0; z-index: 3000; background: linear-gradient(135deg, #1e3a8a, #1a73e8);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .login-card {
+      background: #ffffff; width: 100%; max-width: 360px; border-radius: 16px;
+      padding: 22px 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    }
+    .login-title { font-size: 20px; font-weight: 800; color: #111827; text-align: center; margin-bottom: 4px; }
+    .login-sub { font-size: 12px; color: #6b7280; text-align: center; margin-bottom: 18px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 4px; }
+    .form-group input {
+      width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;
+    }
+    .login-btn {
+      width: 100%; padding: 12px; background: #1a73e8; color: #fff; border: none;
+      border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 6px;
+    }
+    .login-status { font-size: 12px; color: #dc2626; text-align: center; margin-top: 10px; min-height: 16px; font-weight: 600; }
 
     /* Compact Top Control Bar */
     .top-bar {
@@ -20,19 +41,19 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.12); display: flex; gap: 6px; align-items: center;
     }
     .top-bar select {
-      flex: 1; min-width: 110px; padding: 8px; border: 1px solid #d1d5db;
+      flex: 1; min-width: 100px; padding: 7px; border: 1px solid #d1d5db;
       border-radius: 7px; font-size: 13px; font-weight: 600; background: #f9fafb;
     }
     .btn {
       padding: 8px 10px; border: none; border-radius: 7px; font-size: 12px;
-      font-weight: 600; cursor: pointer; transition: 0.15s; white-space: nowrap;
+      font-weight: 600; cursor: pointer; white-space: nowrap;
       display: inline-flex; align-items: center; justify-content: center;
     }
     .btn-primary { background: #1a73e8; color: #fff; }
     .btn-success { background: #16a34a; color: #fff; }
     .btn-outline { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
 
-    /* Compact Turn-by-Turn Voice Banner */
+    /* Turn-by-Turn Voice Banner */
     .nav-banner {
       position: absolute; top: 54px; left: 8px; right: 8px; z-index: 1000;
       background: #0f5338; color: #ffffff; padding: 8px 10px; border-radius: 10px;
@@ -51,63 +72,47 @@
       border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0;
     }
 
-    /* Map Container */
     #map { height: 100%; width: 100%; z-index: 1; }
-
-    /* Two-Wheeler Rider Icon */
-    .rider-icon {
-      font-size: 26px; text-align: center; line-height: 30px;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
-    }
+    .rider-icon { font-size: 26px; text-align: center; line-height: 30px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
 
     /* Compact Bottom Footer Panel */
     .bottom-panel {
       position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000;
       background: #ffffff; border-radius: 14px 14px 0 0;
-      box-shadow: 0 -3px 16px rgba(0,0,0,0.15); padding: 10px 12px;
+      box-shadow: 0 -3px 16px rgba(0,0,0,0.15); padding: 9px 11px;
       display: flex; flex-direction: column;
     }
     .active-card {
       background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 8px 10px;
     }
-    .active-header {
-      display: flex; justify-content: space-between; align-items: center; gap: 6px;
-    }
-    .title-wrap {
-      display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;
-    }
+    .active-header { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+    .title-wrap { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
     .badge {
       background: #1a73e8; color: #fff; font-size: 10px; font-weight: 700;
       padding: 2px 6px; border-radius: 99px; text-transform: uppercase; flex-shrink: 0;
     }
-    .shop-title {
-      font-size: 14px; font-weight: 700; color: #111827;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .distance-label {
-      font-size: 12px; font-weight: 700; color: #1e40af; flex-shrink: 0;
-    }
+    .shop-title { font-size: 14px; font-weight: 700; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .distance-label { font-size: 11px; font-weight: 700; color: #1e40af; flex-shrink: 0; }
 
-    /* Footer Action Row */
-    .action-row {
-      display: flex; gap: 6px; margin-top: 8px; align-items: center;
+    /* Outcome Dropdown + Action Row */
+    .outcome-row { display: none; margin-top: 6px; gap: 6px; align-items: center; }
+    .outcome-select {
+      flex: 1; padding: 6px 8px; border-radius: 6px; border: 1px solid #93c5fd;
+      font-size: 12px; font-weight: 600; background: #ffffff; color: #1e3a8a;
     }
+    .staff-tag { font-size: 10px; color: #4b5563; font-weight: 600; white-space: nowrap; }
+
+    .action-row { display: flex; gap: 6px; margin-top: 7px; align-items: center; }
     .btn-next { flex: 1.4; }
     .btn-call { flex: 1; text-decoration: none; }
-    .btn-icon { width: 36px; height: 34px; padding: 0; font-size: 14px; flex-shrink: 0; }
+    .btn-icon { width: 34px; height: 32px; padding: 0; font-size: 13px; flex-shrink: 0; }
 
-    /* Collapsible Shop Sequence List (Hidden by Default) */
+    /* Collapsible Shop Sequence List */
     .shop-list {
-      display: none;
-      max-height: 32vh;
-      overflow-y: auto;
-      border-top: 1px solid #e5e7eb;
-      margin-top: 8px;
-      padding-top: 6px;
+      display: none; max-height: 30vh; overflow-y: auto;
+      border-top: 1px solid #e5e7eb; margin-top: 8px; padding-top: 6px;
     }
-    .shop-list.open {
-      display: block;
-    }
+    .shop-list.open { display: block; }
     .shop-item {
       display: flex; justify-content: space-between; align-items: center;
       padding: 7px 4px; border-bottom: 1px solid #f3f4f6; font-size: 13px; cursor: pointer;
@@ -118,23 +123,40 @@
       background: #e5e7eb; color: #111827; text-align: center; line-height: 20px;
       font-weight: 700; font-size: 11px; margin-right: 6px;
     }
-
-    /* Hide default white routing box */
     .leaflet-routing-container { display: none !important; }
   </style>
 </head>
 <body>
 
-  <!-- Compact Top Controls -->
+  <!-- Staff Login Screen (Validates against Sheet 2 & Logs to Sheet 3) -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-title">🛵 Field Staff Login</div>
+      <div class="login-sub">Turn on phone GPS before signing in</div>
+      <div class="form-group">
+        <label>User ID / Mobile</label>
+        <input type="text" id="loginUserId" placeholder="Enter User ID" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label>Password / PIN</label>
+        <input type="password" id="loginPassword" placeholder="Enter Password" autocomplete="current-password" />
+      </div>
+      <button class="login-btn" id="loginBtn" onclick="handleStaffLogin()">Sign In & Punch GPS</button>
+      <div class="login-status" id="loginStatus">Connecting to Google Sheet...</div>
+    </div>
+  </div>
+
+  <!-- Top Bar -->
   <div class="top-bar">
     <select id="areaSelect">
-      <option value="">Loading areas...</option>
+      <option value="">Select Area...</option>
     </select>
     <button class="btn btn-primary" onclick="startLiveTwoWheelerNavigation()">🛵 Start</button>
     <button class="btn btn-outline" id="muteBtn" onclick="toggleVoice()">🔊</button>
+    <button class="btn btn-outline" onclick="handleLogout()" title="Logout">🚪</button>
   </div>
 
-  <!-- Live Turn-by-Turn Navigation Banner -->
+  <!-- Live Turn-by-Turn Voice Banner -->
   <div class="nav-banner" id="navBanner">
     <div class="nav-step-main">
       <div class="nav-icon" id="navTurnIcon">⬆️</div>
@@ -151,40 +173,59 @@
 
   <!-- Compact Bottom Footer -->
   <div class="bottom-panel">
-    <!-- Hidden Shop List Drawer (Opens above the target shop card or inside footer) -->
     <div id="activeStopContainer" class="active-card">
       <div class="active-header">
         <div class="title-wrap">
-          <span class="badge" id="stopBadge">Loading</span>
-          <span class="shop-title" id="activeShopName">Connecting to sheet...</span>
+          <span class="badge" id="stopBadge">Ready</span>
+          <span class="shop-title" id="activeShopName">Select an area above</span>
         </div>
         <span id="distanceText" class="distance-label"></span>
       </div>
 
+      <!-- Visit Outcome Selector & Active Staff Indicator -->
+      <div class="outcome-row" id="outcomeRow">
+        <select id="visitOutcome" class="outcome-select">
+          <option value="Visited - Order Taken">✅ Visited - Order Taken</option>
+          <option value="Payment Collected">💰 Payment Collected</option>
+          <option value="Visited - No Order">➖ Visited - No Order</option>
+          <option value="Shop Closed">🔒 Shop Closed</option>
+        </select>
+        <span class="staff-tag" id="staffTag">👤 Staff</span>
+      </div>
+
       <div class="action-row" id="activeActions" style="display: none;">
-        <button class="btn btn-success btn-next" onclick="markCurrentVisited()">✅ Next Shop</button>
+        <button class="btn btn-success btn-next" id="punchBtn" onclick="markCurrentVisited()">✅ Complete & Next</button>
         <button class="btn btn-outline btn-icon" onclick="recenterOnRider()" title="Center on me">🎯</button>
         <a id="callBtn" class="btn btn-outline btn-call" href="#">📞 Call</a>
         <button class="btn btn-outline btn-icon" id="toggleListBtn" onclick="toggleShopList()" title="Show/Hide Shop List">▲</button>
       </div>
     </div>
 
-    <!-- Collapsible Shop List -->
     <div class="shop-list" id="shopList"></div>
   </div>
 
-  <!-- Cloudflare JS Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
   <script>
-    // HARDCODED GOOGLE SHEET PUBLISHED CSV URL
-    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSAKuQG7Ap1FQQLm_5yiiFvgA7UFzjqmhRlxyHRFtYfBK7O2H4NkgGFBXoNTdLlvYPUAnHLDerZDucl/pub?output=csv";
+    // HARDCODED GOOGLE APPS SCRIPT WEB APP URL (Sheet 1, Sheet 2 & Sheet 3)
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzn35yS08Lvf_TbljoPDIdWOaU2MOPTRUNH_lkx6-MU6T1SlAjlYisx6tHZ-Z5OO907yQ/exec";
+
+    // Backup Published CSV URL for Sheet 1
+    const BACKUP_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSAKuQG7Ap1FQQLm_5yiiFvgA7UFzjqmhRlxyHRFtYfBK7O2H4NkgGFBXoNTdLlvYPUAnHLDerZDucl/pub?output=csv";
+
+    // Geofence Radius in Meters (Within 80m = AT_SHOP, >80m = AWAY_FROM_SHOP)
+    const GEOFENCE_LIMIT_METERS = 80;
 
     let allCustomers = [];
+    let allUsers = [];
+    let currentUser = null; // { userId, name, allowedAreas }
+    let lastPunchTimestamp = null;
+
     let areaShops = [];
     let userLocation = null;
+    let hasRealGpsFix = false;
     let currentTargetShop = null;
     let routingControl = null;
     let map = null;
@@ -192,7 +233,6 @@
     let userMarker = null;
     let gpsWatchId = null;
 
-    // Voice & Turn-by-Turn State
     let voiceEnabled = true;
     let routeInstructions = [];
     let routeCoordinates = [];
@@ -208,26 +248,180 @@
         maxZoom: 19
       }).addTo(map);
       markersLayer = L.layerGroup().addTo(map);
-
-      // Tap map to test on PC without GPS
-      map.on('click', function(e) {
-        if (areaShops.length > 0 && !gpsWatchId) {
-          userLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
-          updateUserMarker();
-          sortShopsByNearestChain(userLocation.lat, userLocation.lng);
-          routeToNextUnvisited(true);
-        }
-      });
     } catch (err) {
-      document.getElementById("activeShopName").innerText = "Map error: " + err.message;
+      console.error("Map init error", err);
     }
 
-    // Toggle Shop List Drawer (Up/Down Arrow Button beside Call Button)
+    // Request live GPS silently on page open so coordinates are ready at login
+    function prewarmGps() {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          hasRealGpsFix = true;
+          updateUserMarker();
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+
+    // Load Users (Sheet 2) & Shops (Sheet 1) from Apps Script Web App
+    async function loadAllData() {
+      const statusEl = document.getElementById("loginStatus");
+      statusEl.style.color = "#1e40af";
+      statusEl.innerText = "Loading staff credentials & shops...";
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, { cache: "no-store", redirect: "follow" });
+        const data = await res.json();
+
+        if (data.users) allUsers = data.users;
+        if (data.shops && data.shops.length > 1) {
+          processParsedRows(data.shops);
+        } else {
+          loadFallbackCsvShops();
+        }
+
+        if (allUsers.length > 0) {
+          statusEl.style.color = "#16a34a";
+          statusEl.innerText = `Ready (${allUsers.length} staff accounts loaded).`;
+        } else {
+          statusEl.style.color = "#d97706";
+          statusEl.innerText = "Connected, but no users found in Sheet 2 (Row 2 onwards).";
+        }
+      } catch (err) {
+        statusEl.style.color = "#dc2626";
+        statusEl.innerText = "Connection error. Ensure Apps Script access is set to 'Anyone'.";
+        loadFallbackCsvShops();
+      }
+    }
+
+    function loadFallbackCsvShops() {
+      Papa.parse(BACKUP_SHEET_CSV_URL, {
+        download: true, header: false, skipEmptyLines: true,
+        complete: function(results) { processParsedRows(results.data); }
+      });
+    }
+
+    // Verify Staff Login against Sheet 2 and Write LOGIN Punch to Sheet 3
+    function handleStaffLogin() {
+      const uidInput = document.getElementById("loginUserId").value.trim();
+      const passInput = document.getElementById("loginPassword").value.trim();
+      const statusEl = document.getElementById("loginStatus");
+
+      if (!uidInput || !passInput) {
+        statusEl.style.color = "#dc2626";
+        statusEl.innerText = "Please enter both User ID and Password.";
+        return;
+      }
+
+      if (allUsers.length === 0) {
+        statusEl.style.color = "#dc2626";
+        statusEl.innerText = "No staff accounts loaded from Sheet 2 yet.";
+        return;
+      }
+
+      const matchedUser = allUsers.find(
+        u => String(u.userId).toLowerCase() === uidInput.toLowerCase() && String(u.password) === passInput
+      );
+
+      if (!matchedUser) {
+        statusEl.style.color = "#dc2626";
+        statusEl.innerText = "Invalid User ID or Password.";
+        return;
+      }
+
+      currentUser = matchedUser;
+      lastPunchTimestamp = new Date();
+      document.getElementById("staffTag").innerText = `👤 ${currentUser.name}`;
+      document.getElementById("loginOverlay").style.display = "none";
+
+      populateAreaDropdown();
+
+      // Capture GPS & Send LOGIN Event to Sheet 3
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            hasRealGpsFix = true;
+            updateUserMarker();
+            sendLogToSheet3({
+              actionType: "LOGIN",
+              area: "-",
+              shopName: "-",
+              outcome: "Staff Logged In",
+              locationStatus: "GPS_ACTIVE",
+              distanceMeters: 0
+            });
+          },
+          () => {
+            sendLogToSheet3({
+              actionType: "LOGIN",
+              area: "-",
+              shopName: "-",
+              outcome: "Staff Logged In (GPS Off)",
+              locationStatus: "GPS_OFF",
+              distanceMeters: ""
+            });
+          },
+          { enableHighAccuracy: true, timeout: 7000 }
+        );
+      }
+    }
+
+    function handleLogout() {
+      if (!currentUser) return;
+      sendLogToSheet3({
+        actionType: "LOGOUT",
+        area: document.getElementById("areaSelect").value || "-",
+        shopName: "-",
+        outcome: "Session Ended",
+        locationStatus: hasRealGpsFix ? "GPS_ACTIVE" : "GPS_OFF",
+        distanceMeters: ""
+      });
+      currentUser = null;
+      document.getElementById("loginPassword").value = "";
+      document.getElementById("loginOverlay").style.display = "flex";
+    }
+
+    // Send Log Row to Sheet 3 via Apps Script POST
+    async function sendLogToSheet3(logDetails) {
+      const now = new Date();
+      const minsSinceLast = lastPunchTimestamp
+        ? ((now - lastPunchTimestamp) / 60000).toFixed(1)
+        : "0.0";
+      lastPunchTimestamp = now;
+
+      const payload = {
+        userId: currentUser ? currentUser.userId : "UNKNOWN",
+        staffName: currentUser ? currentUser.name : "UNKNOWN",
+        actionType: logDetails.actionType || "INFO",
+        area: logDetails.area || "",
+        shopName: logDetails.shopName || "",
+        outcome: logDetails.outcome || "",
+        locationStatus: logDetails.locationStatus || "",
+        distanceMeters: logDetails.distanceMeters !== undefined ? logDetails.distanceMeters : "",
+        minutesSinceLast: minsSinceLast,
+        staffLat: userLocation && hasRealGpsFix ? userLocation.lat.toFixed(6) : "",
+        staffLng: userLocation && hasRealGpsFix ? userLocation.lng.toFixed(6) : ""
+      };
+
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error("Failed to write log to Sheet 3:", err);
+      }
+    }
+
     function toggleShopList(forceState) {
       const listEl = document.getElementById("shopList");
       const btnEl = document.getElementById("toggleListBtn");
       const isOpen = typeof forceState === "boolean" ? forceState : !listEl.classList.contains("open");
-
       if (isOpen) {
         listEl.classList.add("open");
         btnEl.innerText = "▼";
@@ -237,7 +431,6 @@
       }
     }
 
-    // Text-to-Speech Function
     function speakText(text) {
       if (!voiceEnabled || !('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
@@ -249,8 +442,7 @@
 
     function toggleVoice() {
       voiceEnabled = !voiceEnabled;
-      const btn = document.getElementById("muteBtn");
-      btn.innerText = voiceEnabled ? "🔊" : "🔇";
+      document.getElementById("muteBtn").innerText = voiceEnabled ? "🔊" : "🔇";
       if (!voiceEnabled && ('speechSynthesis' in window)) {
         window.speechSynthesis.cancel();
       } else {
@@ -290,29 +482,19 @@
           allCustomers.push({ id: i, area, name, lat, lng, phone, mapsLink, visited: false });
         }
       }
-
       populateAreaDropdown();
-      document.getElementById("stopBadge").innerText = "Ready";
-      document.getElementById("activeShopName").innerText = `Select an area above (${allCustomers.length} shops)`;
-    }
-
-    async function loadSheetData() {
-      try {
-        const response = await fetch(SHEET_CSV_URL, { cache: "no-store" });
-        const csvText = await response.text();
-        const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
-        processParsedRows(parsed.data);
-      } catch (err) {
-        Papa.parse(SHEET_CSV_URL, {
-          download: true, header: false, skipEmptyLines: true,
-          complete: function(results) { processParsedRows(results.data); }
-        });
-      }
     }
 
     function populateAreaDropdown() {
       const select = document.getElementById("areaSelect");
-      const areas = [...new Set(allCustomers.map(c => c.area))].sort();
+      let areas = [...new Set(allCustomers.map(c => c.area))].sort();
+
+      // Filter areas if staff has specific assigned areas in Sheet 2 Column D
+      if (currentUser && currentUser.allowedAreas && currentUser.allowedAreas.toUpperCase() !== "ALL") {
+        const allowedList = currentUser.allowedAreas.split(",").map(a => a.trim().toLowerCase());
+        areas = areas.filter(a => allowedList.includes(a.toLowerCase()));
+      }
+
       select.innerHTML = '<option value="">-- Select Area (' + areas.length + ') --</option>';
       areas.forEach(area => {
         const opt = document.createElement("option");
@@ -347,8 +529,18 @@
       renderShopSequence();
       document.getElementById("stopBadge").innerText = areaName;
       document.getElementById("activeShopName").innerText = `${areaShops.length} shops ready. Tap "🛵 Start"`;
+      document.getElementById("outcomeRow").style.display = "flex";
       document.getElementById("activeActions").style.display = "flex";
       document.getElementById("distanceText").innerText = "";
+
+      sendLogToSheet3({
+        actionType: "START_AREA",
+        area: areaName,
+        shopName: "-",
+        outcome: `Loaded ${areaShops.length} shops`,
+        locationStatus: hasRealGpsFix ? "GPS_ACTIVE" : "GPS_OFF",
+        distanceMeters: ""
+      });
     }
 
     function startLiveTwoWheelerNavigation() {
@@ -370,12 +562,12 @@
       }
 
       if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
-
       let initialFixDone = false;
 
       gpsWatchId = navigator.geolocation.watchPosition(
         pos => {
           userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          hasRealGpsFix = true;
           updateUserMarker();
 
           if (!initialFixDone) {
@@ -386,22 +578,20 @@
             onRiderMoved();
           }
         },
-        err => {
+        () => {
           if (!initialFixDone) {
             initialFixDone = true;
             useFallbackStartLocation();
           }
         },
-        { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+        { enableHighAccuracy: true, maximumAge: 1500, timeout: 10000 }
       );
     }
 
     function useFallbackStartLocation() {
+      hasRealGpsFix = false;
       const firstShop = areaShops[0];
-      userLocation = {
-        lat: firstShop.lat + 0.0028,
-        lng: firstShop.lng - 0.0022
-      };
+      userLocation = { lat: firstShop.lat + 0.0028, lng: firstShop.lng - 0.0022 };
       updateUserMarker();
       sortShopsByNearestChain(userLocation.lat, userLocation.lng);
       routeToNextUnvisited(true);
@@ -410,10 +600,7 @@
     function updateUserMarker() {
       if (!userLocation || !map) return;
       const scooterIcon = L.divIcon({
-        className: 'rider-icon',
-        html: '🛵',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
+        className: 'rider-icon', html: '🛵', iconSize: [32, 32], iconAnchor: [16, 16]
       });
 
       if (!userMarker) {
@@ -424,9 +611,7 @@
     }
 
     function recenterOnRider() {
-      if (userLocation && map) {
-        map.setView([userLocation.lat, userLocation.lng], 18);
-      }
+      if (userLocation && map) map.setView([userLocation.lat, userLocation.lng], 18);
     }
 
     function onRiderMoved() {
@@ -435,11 +620,11 @@
       const distToShop = getDistanceMeters(userLocation.lat, userLocation.lng, currentTargetShop.lat, currentTargetShop.lng);
       document.getElementById("distanceText").innerText = distToShop < 1000 ? `${Math.round(distToShop)} m` : `${(distToShop / 1000).toFixed(2)} km`;
 
-      if (distToShop <= 22 && lastSpokenStepIdx !== 9999) {
+      if (distToShop <= 25 && lastSpokenStepIdx !== 9999) {
         lastSpokenStepIdx = 9999;
         document.getElementById("navTurnIcon").innerText = "🏁";
         document.getElementById("navInstructionText").innerText = `Arrived at ${currentTargetShop.name}`;
-        document.getElementById("navSubText").innerText = "Tap '✅ Next Shop' below";
+        document.getElementById("navSubText").innerText = "Select outcome & tap '✅ Complete & Next'";
         speakText(`You have arrived at ${currentTargetShop.name}`);
         return;
       }
@@ -455,9 +640,7 @@
             lastSpokenStepIdx = currentStepIdx;
             updateNavBannerStep(step);
             speakText(step.text);
-            if (currentStepIdx + 1 < routeInstructions.length) {
-              currentStepIdx++;
-            }
+            if (currentStepIdx + 1 < routeInstructions.length) currentStepIdx++;
           }
         }
       }
@@ -529,7 +712,7 @@
     window.routeToSpecificShop = function(shopId) {
       const shop = areaShops.find(s => s.id === shopId);
       if (shop) {
-        toggleShopList(false); // Auto-hide list when a shop is chosen
+        toggleShopList(false);
         if (!userLocation) {
           userLocation = { lat: shop.lat + 0.0025, lng: shop.lng - 0.002 };
           updateUserMarker();
@@ -575,14 +758,13 @@
         if (routeInstructions.length > 0) {
           const firstStep = routeInstructions[0];
           updateNavBannerStep(firstStep);
-          if (announceStart) {
-            speakText(`Next stop ${shop.name}. ${firstStep.text}`);
-          }
+          if (announceStart) speakText(`Next stop ${shop.name}. ${firstStep.text}`);
         }
       });
 
       document.getElementById("stopBadge").innerText = "Target";
       document.getElementById("activeShopName").innerText = shop.name;
+      document.getElementById("outcomeRow").style.display = "flex";
       document.getElementById("activeActions").style.display = "flex";
 
       const callBtn = document.getElementById("callBtn");
@@ -597,12 +779,41 @@
       }
     }
 
+    // Complete Shop, Verify Geofence Distance, Log to Sheet 3, and Advance
     function markCurrentVisited() {
       if (!currentTargetShop) return;
-      currentTargetShop.visited = true;
+      const completedShop = currentTargetShop;
+      const outcomeVal = document.getElementById("visitOutcome").value;
 
-      userLocation = { lat: currentTargetShop.lat, lng: currentTargetShop.lng };
-      updateUserMarker();
+      let distanceMeters = "";
+      let locationStatus = "GPS_OFF";
+
+      if (userLocation && hasRealGpsFix) {
+        distanceMeters = Math.round(
+          getDistanceMeters(userLocation.lat, userLocation.lng, completedShop.lat, completedShop.lng)
+        );
+        if (distanceMeters <= GEOFENCE_LIMIT_METERS) {
+          locationStatus = "AT_SHOP (Verified)";
+        } else {
+          locationStatus = `AWAY_FROM_SHOP (${distanceMeters}m away)`;
+        }
+      }
+
+      sendLogToSheet3({
+        actionType: "SHOP_COMPLETED",
+        area: completedShop.area,
+        shopName: completedShop.name,
+        outcome: outcomeVal,
+        locationStatus: locationStatus,
+        distanceMeters: distanceMeters
+      });
+
+      completedShop.visited = true;
+
+      if (!hasRealGpsFix) {
+        userLocation = { lat: completedShop.lat, lng: completedShop.lng };
+        updateUserMarker();
+      }
 
       sortShopsByNearestChain(userLocation.lat, userLocation.lng);
       routeToNextUnvisited(true);
@@ -626,7 +837,8 @@
       });
     }
 
-    loadSheetData();
+    prewarmGps();
+    loadAllData();
   </script>
 </body>
 </html>
